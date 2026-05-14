@@ -56,6 +56,26 @@ importers:
       '@vue/compiler-sfc':
         specifier: ^3.5.13
         version: 3.5.34
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+
+  examples/borders:
+    dependencies:
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.34(typescript@5.9.3)
+      vue-ink:
+        specifier: workspace:*
+        version: link:../../packages/vue-ink
+    devDependencies:
+      '@vue/compiler-sfc':
+        specifier: ^3.5.13
+        version: 3.5.34
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
 
   examples/colors:
     dependencies:
@@ -121,7 +141,87 @@ importers:
         specifier: 'catalog:'
         version: 4.21.0
 
+  examples/kitty-keys:
+    dependencies:
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.34(typescript@5.9.3)
+      vue-ink:
+        specifier: workspace:*
+        version: link:../../packages/vue-ink
+    devDependencies:
+      '@vue/compiler-sfc':
+        specifier: ^3.5.13
+        version: 3.5.34
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+
+  examples/paste:
+    dependencies:
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.34(typescript@5.9.3)
+      vue-ink:
+        specifier: workspace:*
+        version: link:../../packages/vue-ink
+    devDependencies:
+      '@vue/compiler-sfc':
+        specifier: ^3.5.13
+        version: 3.5.34
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+
+  examples/spacer:
+    dependencies:
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.34(typescript@5.9.3)
+      vue-ink:
+        specifier: workspace:*
+        version: link:../../packages/vue-ink
+    devDependencies:
+      '@vue/compiler-sfc':
+        specifier: ^3.5.13
+        version: 3.5.34
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+
   examples/text-styles:
+    dependencies:
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.34(typescript@5.9.3)
+      vue-ink:
+        specifier: workspace:*
+        version: link:../../packages/vue-ink
+    devDependencies:
+      '@vue/compiler-sfc':
+        specifier: ^3.5.13
+        version: 3.5.34
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+
+  examples/transform:
+    dependencies:
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.34(typescript@5.9.3)
+      vue-ink:
+        specifier: workspace:*
+        version: link:../../packages/vue-ink
+    devDependencies:
+      '@vue/compiler-sfc':
+        specifier: ^3.5.13
+        version: 3.5.34
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+
+  examples/window-size:
     dependencies:
       vue:
         specifier: 'catalog:'

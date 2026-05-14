@@ -16,7 +16,31 @@
 		"description": "Box layout — flexDirection, justifyContent, alignItems, gap, padding."
 	},
 	{
+		"name": "borders",
+		"description": "Box borderStyle (single/double/round/bold/classic), borderColor, per-side borders."
+	},
+	{
+		"name": "spacer",
+		"description": "Spacer pushes siblings apart; Newline inserts line breaks inside Text."
+	},
+	{
+		"name": "transform",
+		"description": "Transform component — uppercase, reverse, bracket, line numbering."
+	},
+	{
 		"name": "input",
 		"description": "useInput / useApp — live keypress display; q or Esc to quit."
+	},
+	{
+		"name": "kitty-keys",
+		"description": "Kitty keyboard — modifiers, special keys, press/repeat/release event types."
+	},
+	{
+		"name": "paste",
+		"description": "usePaste — bracketed paste mode; pastes multi-line text as one event."
+	},
+	{
+		"name": "window-size",
+		"description": "useWindowSize — live-reactive terminal columns × rows on resize."
 	}
 ]
