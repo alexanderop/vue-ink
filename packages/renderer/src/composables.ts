@@ -1,11 +1,22 @@
-import { inject, onBeforeUnmount, watch, ref, type InjectionKey, type Ref } from 'vue';
+import {
+	computed,
+	inject,
+	onBeforeUnmount,
+	watch,
+	ref,
+	type ComputedRef,
+	type InjectionKey,
+	type Ref,
+} from 'vue';
 import {
 	APP_CONTEXT_KEY,
 	STDIN_CONTEXT_KEY,
 	STDOUT_CONTEXT_KEY,
 	STDERR_CONTEXT_KEY,
 	ACCESSIBILITY_CONTEXT_KEY,
+	FOCUS_CONTEXT_KEY,
 	type AppContext,
+	type FocusContext,
 	type StdinContext,
 	type StdoutContext,
 	type StderrContext,
@@ -191,6 +202,105 @@ export const usePaste = (
 	);
 
 	onBeforeUnmount(stop);
+};
+
+export type UseFocusOptions = {
+	isActive?: boolean | Ref<boolean>;
+	autoFocus?: boolean;
+	id?: string;
+};
+
+export type UseFocusReturn = {
+	isFocused: ComputedRef<boolean>;
+	focus: (id: string) => void;
+};
+
+let focusIdCounter = 0;
+const generateFocusId = (): string => {
+	focusIdCounter += 1;
+	return `vi-focus-${focusIdCounter}-${Math.random().toString(36).slice(2, 7)}`;
+};
+
+export const useFocus = (options: UseFocusOptions = {}): UseFocusReturn => {
+	const focusCtx = requireContext(FOCUS_CONTEXT_KEY, 'useFocus()');
+	const { setRawMode, isRawModeSupported } = requireContext(
+		STDIN_CONTEXT_KEY,
+		'useFocus()',
+	);
+
+	const id = options.id ?? generateFocusId();
+	const autoFocus = options.autoFocus ?? false;
+	focusCtx.add(id, { autoFocus });
+
+	const isActiveRef = ref<boolean>(true);
+	if (options.isActive !== undefined) {
+		watch(
+			() => (typeof options.isActive === 'object' ? options.isActive.value : options.isActive),
+			(value) => {
+				isActiveRef.value = value !== false;
+			},
+			{ immediate: true },
+		);
+	}
+
+	let holdingRawMode = false;
+	const releaseRawMode = (): void => {
+		if (!holdingRawMode) return;
+		setRawMode(false);
+		holdingRawMode = false;
+	};
+	const acquireRawMode = (): void => {
+		if (!isRawModeSupported) return;
+		setRawMode(true);
+		holdingRawMode = true;
+	};
+
+	watch(
+		isActiveRef,
+		(value) => {
+			if (value) {
+				focusCtx.activate(id);
+				acquireRawMode();
+			} else {
+				focusCtx.deactivate(id);
+				releaseRawMode();
+			}
+		},
+		{ immediate: true },
+	);
+
+	onBeforeUnmount(() => {
+		focusCtx.remove(id);
+		releaseRawMode();
+	});
+
+	const isFocused = computed(() => focusCtx.activeId.value === id);
+
+	return {
+		isFocused,
+		focus: focusCtx.focus,
+	};
+};
+
+export type UseFocusManagerReturn = {
+	activeId: Ref<string | undefined>;
+	focus: FocusContext['focus'];
+	focusNext: FocusContext['focusNext'];
+	focusPrevious: FocusContext['focusPrevious'];
+	enableFocus: FocusContext['enableFocus'];
+	disableFocus: FocusContext['disableFocus'];
+};
+
+export const useFocusManager = (): UseFocusManagerReturn => {
+	const focusCtx = requireContext(FOCUS_CONTEXT_KEY, 'useFocusManager()');
+	return {
+		activeId: focusCtx.activeId,
+		focus: focusCtx.focus,
+		focusNext: focusCtx.focusNext,
+		focusPrevious: focusCtx.focusPrevious,
+		enableFocus: focusCtx.enableFocus,
+		disableFocus: focusCtx.disableFocus,
+	};
 };
 
 export type { Key };

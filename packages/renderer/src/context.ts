@@ -28,9 +28,24 @@ export type AccessibilityContext = {
 	isScreenReaderEnabled: Ref<boolean>;
 };
 
+export type FocusContext = {
+	activeId: Ref<string | undefined>;
+	isFocusEnabled: Ref<boolean>;
+	add: (id: string, options: { autoFocus: boolean }) => void;
+	remove: (id: string) => void;
+	activate: (id: string) => void;
+	deactivate: (id: string) => void;
+	focus: (id: string) => void;
+	focusNext: () => void;
+	focusPrevious: () => void;
+	enableFocus: () => void;
+	disableFocus: () => void;
+};
+
 export const APP_CONTEXT_KEY: InjectionKey<AppContext> = Symbol('vue-ink.app');
 export const STDIN_CONTEXT_KEY: InjectionKey<StdinContext> = Symbol('vue-ink.stdin');
 export const STDOUT_CONTEXT_KEY: InjectionKey<StdoutContext> = Symbol('vue-ink.stdout');
 export const STDERR_CONTEXT_KEY: InjectionKey<StderrContext> = Symbol('vue-ink.stderr');
 export const ACCESSIBILITY_CONTEXT_KEY: InjectionKey<AccessibilityContext> =
 	Symbol('vue-ink.accessibility');
+export const FOCUS_CONTEXT_KEY: InjectionKey<FocusContext> = Symbol('vue-ink.focus');

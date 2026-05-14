@@ -6,6 +6,7 @@ import { h, nextTick as vueNextTick, ref, shallowRef, type Component } from 'vue
 import { createApp } from './renderer.ts';
 import { createNode, Output, renderNodeToOutput, type DOMElement } from '@vue-ink/core';
 import { createInputManager } from './input.ts';
+import { createFocusManager } from './focus-context.ts';
 import { BSU, ESU } from './write-synchronized.ts';
 import {
 	APP_CONTEXT_KEY,
@@ -13,6 +14,7 @@ import {
 	STDOUT_CONTEXT_KEY,
 	STDERR_CONTEXT_KEY,
 	ACCESSIBILITY_CONTEXT_KEY,
+	FOCUS_CONTEXT_KEY,
 } from './context.ts';
 import {
 	enableKittyKeyboard,
@@ -220,6 +222,11 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		emitter: inputManager.emitter,
 	});
 
+	const { destroy: destroyFocusManager, ...focusContext } = createFocusManager(
+		inputManager.emitter,
+	);
+	app.provide(FOCUS_CONTEXT_KEY, focusContext);
+
 	const eraseCurrentFrame = (): void => {
 		if (!useTTYFrame || lastLineCount === 0) return;
 		writeStream.write(ansiEscapes.eraseLines(lastLineCount + 1));
@@ -365,6 +372,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			process.off('beforeExit', onBeforeExit);
 			beforeExitRegistered = false;
 		}
+		destroyFocusManager();
 		inputManager.destroy();
 		app.unmount();
 		if (kittyProtocolEnabled) {

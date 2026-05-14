@@ -40,6 +40,10 @@
 		"description": "usePaste — bracketed paste mode; pastes multi-line text as one event."
 	},
 	{
+		"name": "focus",
+		"description": "useFocus / useFocusManager — Tab cycles 4 buttons; disable/enable, jump-to-id, isActive toggle."
+	},
+	{
 		"name": "window-size",
 		"description": "useWindowSize — live-reactive terminal columns × rows on resize."
 	}
