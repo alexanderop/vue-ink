@@ -9,8 +9,8 @@ export type StdinContext = {
 	stdin: NodeJS.ReadStream;
 	isRawModeSupported: boolean;
 	setRawMode: (enable: boolean) => void;
+	setBracketedPasteMode: (enable: boolean) => void;
 	emitter: EventEmitter;
-	internal_exitOnCtrlC: boolean;
 };
 
 export const APP_CONTEXT_KEY: InjectionKey<AppContext> = Symbol('vue-ink.app');

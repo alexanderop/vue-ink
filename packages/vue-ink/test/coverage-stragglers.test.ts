@@ -1,37 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { h, defineComponent, ref } from 'vue';
 import { render, Box, Text, useInput as useInputComposable } from '../src/index.ts';
-import { createInputManager } from '../../renderer/src/input.ts';
 import {
 	createCaptureStream,
 	createFakeStdin,
 	flush,
 } from './helpers.ts';
-
-describe('input.ts: str default branches', () => {
-	it('coerces undefined str to empty input for unknown raw event', () => {
-		const stdin = createFakeStdin();
-		const seen: string[] = [];
-		const mgr = createInputManager({ stdin, exitOnCtrlC: false, onCtrlC: () => {} });
-		mgr.setRawMode(true);
-		mgr.emitter.on('input', (input: string) => seen.push(input));
-		// No str, raw with a non-NON_PRINTABLE name and no ctrl → input = str ?? '' = ''
-		stdin.emitKeypress(undefined, { name: 'unknownkey' });
-		expect(seen).toEqual(['']);
-		mgr.destroy();
-	});
-
-	it('coerces null str to empty input', () => {
-		const stdin = createFakeStdin();
-		const seen: string[] = [];
-		const mgr = createInputManager({ stdin, exitOnCtrlC: false, onCtrlC: () => {} });
-		mgr.setRawMode(true);
-		mgr.emitter.on('input', (input: string) => seen.push(input));
-		stdin.emit('keypress', null, {});
-		expect(seen).toEqual(['']);
-		mgr.destroy();
-	});
-});
 
 describe('render.ts: ctrl+c via stdin triggers unmount', () => {
 	it('honors exitOnCtrlC=true via the raw-mode input manager', async () => {
@@ -47,7 +21,7 @@ describe('render.ts: ctrl+c via stdin triggers unmount', () => {
 		});
 		const instance = render(App, { stdout, stdin, exitOnCtrlC: true });
 		const wait = instance.waitUntilExit();
-		stdin.emitKeypress('\x03', { name: 'c', ctrl: true });
+		stdin.emitData('\x03');
 		await wait;
 	});
 });

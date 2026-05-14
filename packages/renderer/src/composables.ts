@@ -33,11 +33,13 @@ export type UseStdinReturn = {
 	stdin: NodeJS.ReadStream;
 	isRawModeSupported: boolean;
 	setRawMode: (enable: boolean) => void;
+	setBracketedPasteMode: (enable: boolean) => void;
 };
 
 export const useStdin = (): UseStdinReturn => {
-	const { stdin, isRawModeSupported, setRawMode } = requireStdin();
-	return { stdin, isRawModeSupported, setRawMode };
+	const { stdin, isRawModeSupported, setRawMode, setBracketedPasteMode } =
+		requireStdin();
+	return { stdin, isRawModeSupported, setRawMode, setBracketedPasteMode };
 };
 
 export type InputHandler = (input: string, key: Key) => void;
@@ -85,6 +87,71 @@ export const useInput = (handler: InputHandler, options: UseInputOptions = {}): 
 	const stop = (): void => {
 		if (!listening) return;
 		emitter.off('input', wrapped);
+		setRawMode(false);
+		listening = false;
+	};
+
+	watch(
+		isActiveRef,
+		(value) => {
+			if (value) start();
+			else stop();
+		},
+		{ immediate: true },
+	);
+
+	onBeforeUnmount(stop);
+};
+
+export type PasteHandler = (text: string) => void;
+
+export type UsePasteOptions = {
+	isActive?: boolean | Ref<boolean>;
+};
+
+export const usePaste = (
+	handler: PasteHandler,
+	options: UsePasteOptions = {},
+): void => {
+	const { setRawMode, setBracketedPasteMode, emitter, isRawModeSupported } =
+		requireStdin();
+	if (!isRawModeSupported) {
+		throw new Error(
+			'usePaste() requires a TTY stdin that supports raw mode. Pipe input is not supported.',
+		);
+	}
+
+	const isActiveRef = ref<boolean>(true);
+	if (options.isActive !== undefined) {
+		watch(
+			() => (typeof options.isActive === 'object' ? options.isActive.value : options.isActive),
+			(value) => {
+				isActiveRef.value = value !== false;
+			},
+			{ immediate: true },
+		);
+	}
+
+	let listening = false;
+	const wrapped = (text: string): void => {
+		/* v8 ignore next */
+		if (!isActiveRef.value) return;
+		handler(text);
+	};
+
+	const start = (): void => {
+		/* v8 ignore next */
+		if (listening) return;
+		setRawMode(true);
+		setBracketedPasteMode(true);
+		emitter.on('paste', wrapped);
+		listening = true;
+	};
+
+	const stop = (): void => {
+		if (!listening) return;
+		emitter.off('paste', wrapped);
+		setBracketedPasteMode(false);
 		setRawMode(false);
 		listening = false;
 	};

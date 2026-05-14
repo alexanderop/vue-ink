@@ -31,6 +31,19 @@ type Clip = {
 	y2: number | undefined;
 };
 
+// One shared, frozen sentinel for filling sparse gaps in the styled-row path
+// of stringifyRow. The prior implementation allocated a fresh
+// `{ type, value, fullWidth, styles: [] }` per cell which dominated
+// FlatList(1000) re-renders (~12ms / frame for 80×1000 = 80k allocations).
+// Safe because writes replace the slot wholesale — they never mutate the
+// sentinel.
+const EMPTY_CELL: StyledChar = Object.freeze({
+	type: 'char',
+	value: ' ',
+	fullWidth: false,
+	styles: [],
+}) as StyledChar;
+
 class OutputCaches {
 	widths = new Map<string, number>();
 	blockWidths = new Map<string, number>();
@@ -93,15 +106,13 @@ export default class Output {
 	}
 
 	get(): { output: string; height: number } {
-		const output: StyledChar[][] = [];
-
-		for (let y = 0; y < this.height; y += 1) {
-			const row: StyledChar[] = [];
-			for (let x = 0; x < this.width; x += 1) {
-				row.push({ type: 'char', value: ' ', fullWidth: false, styles: [] });
-			}
-			output.push(row);
-		}
+		const output: (StyledChar[] | undefined)[] = new Array(this.height);
+		// Per-row column past the last written cell. Stays 0 for untouched
+		// rows (they emit ""), and bounds the scan/concat in stringifyRow so
+		// we never walk trailing space that trimEnd would discard anyway —
+		// for FlatList(1000) that's the difference between 80k cells/frame
+		// and ~6k cells/frame.
+		const rowEnds: number[] = new Array(this.height).fill(0);
 
 		const clips: Clip[] = [];
 
@@ -144,25 +155,36 @@ export default class Output {
 					}
 				}
 
-				let offsetY = 0;
-				for (const [index, rawLine] of lines.entries()) {
-					const currentLine = output[y + offsetY];
-					if (!currentLine) continue;
+				// Classic for loops over `lines` / `characters` avoid the per-call
+				// iterator allocations that `for…of` and `.entries()` incur —
+				// non-trivial for FlatList(1000) where this fires once per row.
+				const transformerCount = transformers.length;
+				const linesLen = lines.length;
+				for (let index = 0; index < linesLen; index += 1) {
+					const rowIndex = y + index;
+					if (rowIndex < 0 || rowIndex >= this.height) continue;
 
-					const line = transformers.reduce<string>(
-						(acc, transformer) => transformer(acc, index),
-						rawLine,
-					);
-
-					const characters = this.caches.getStyledChars(line);
-					let offsetX = x;
-
-					if (characters.length === 0) {
-						offsetY += 1;
-						continue;
+					const rawLine = lines[index]!;
+					let line = rawLine;
+					if (transformerCount > 0) {
+						for (let t = 0; t < transformerCount; t += 1) {
+							line = transformers[t]!(line, index);
+						}
 					}
 
-					for (const character of characters) {
+					const characters = this.caches.getStyledChars(line);
+					const charsLen = characters.length;
+					if (charsLen === 0) continue;
+
+					let currentLine = output[rowIndex];
+					if (currentLine === undefined) {
+						currentLine = [];
+						output[rowIndex] = currentLine;
+					}
+
+					let offsetX = x;
+					for (let c = 0; c < charsLen; c += 1) {
+						const character = characters[c]!;
 						currentLine[offsetX] = character;
 						const characterWidth = Math.max(1, this.caches.getStringWidth(character.value));
 						if (characterWidth > 1) {
@@ -177,19 +199,43 @@ export default class Output {
 						}
 						offsetX += characterWidth;
 					}
-
-					offsetY += 1;
+					if (offsetX > rowEnds[rowIndex]!) rowEnds[rowIndex] = offsetX;
 				}
 			}
 		}
 
-		const generated = output
-			.map((line) => {
-				const cleaned = line.filter((item) => item !== undefined);
-				return styledCharsToString(cleaned).trimEnd();
-			})
-			.join('\n');
-
-		return { output: generated, height: output.length };
+		const rows: string[] = new Array(this.height);
+		for (let y = 0; y < this.height; y += 1) {
+			const row = output[y];
+			rows[y] = row === undefined ? '' : stringifyRow(row, rowEnds[y]!);
+		}
+		return { output: rows.join('\n'), height: this.height };
 	}
 }
+
+// Rows are sparse arrays: only written cells are populated. Untouched gaps
+// are `undefined` and rendered as default-style spaces. The end-bound (column
+// past the last written cell) lets us skip the trailing run that trimEnd
+// would discard anyway — for FlatList(1000) this is the difference between
+// walking 80k cells/frame and a few thousand.
+//
+// Single pass: accumulate plain characters until a styled cell is hit, then
+// switch to the styled path (which has to walk the full row to build the
+// styledCharsToString input). Pure-plain rows — the common case — finish in
+// one walk; mixed rows pay one walk and one fill.
+const stringifyRow = (line: StyledChar[], end: number): string => {
+	if (end === 0) return '';
+	let plain = '';
+	for (let i = 0; i < end; i += 1) {
+		const cell = line[i];
+		if (cell !== undefined && cell.styles.length > 0) {
+			// Fill any sparse gaps with the shared EMPTY_CELL so
+			// styledCharsToString gets a contiguous run.
+			const filled: StyledChar[] = new Array(end);
+			for (let j = 0; j < end; j += 1) filled[j] = line[j] ?? EMPTY_CELL;
+			return styledCharsToString(filled).trimEnd();
+		}
+		plain += cell?.value ?? ' ';
+	}
+	return plain.trimEnd();
+};

@@ -109,7 +109,7 @@ describe('useInput', () => {
 		const instance = render(Demo, { stdout, stdin: fakeStdin, exitOnCtrlC: false });
 
 		// Simulate a keypress through the same channel the real input manager uses.
-		fakeStdin.emit('keypress', 'a', { name: 'a' });
+		fakeStdin.emitData('a');
 
 		expect(onInput).toHaveBeenCalledWith('a', expect.objectContaining({ ctrl: false }));
 		instance.unmount();
@@ -128,17 +128,17 @@ describe('useInput', () => {
 		const stdout = createCaptureStream(20);
 		const { instance, flush } = await renderReusable(Demo, { columns: 20, stdin: fakeStdin });
 
-		fakeStdin.emit('keypress', 'a', { name: 'a' });
+		fakeStdin.emitData('a');
 		expect(onInput).toHaveBeenCalledTimes(1);
 
 		isActive.value = false;
 		await flush();
-		fakeStdin.emit('keypress', 'b', { name: 'b' });
+		fakeStdin.emitData('b');
 		expect(onInput).toHaveBeenCalledTimes(1);
 
 		isActive.value = true;
 		await flush();
-		fakeStdin.emit('keypress', 'c', { name: 'c' });
+		fakeStdin.emitData('c');
 		expect(onInput).toHaveBeenCalledTimes(2);
 
 		instance.unmount();
@@ -157,7 +157,7 @@ describe('useInput', () => {
 		});
 		const stdout = createCaptureStream(20);
 		const instance = render(Demo, { stdout, stdin: fakeStdin, exitOnCtrlC: false });
-		fakeStdin.emit('keypress', 'a', { name: 'a' });
+		fakeStdin.emitData('a');
 		expect(onInput).not.toHaveBeenCalled();
 		instance.unmount();
 	});
@@ -178,11 +178,11 @@ describe('useInput', () => {
 		const stdout = createCaptureStream(20);
 		const instance = render(Demo, { stdout, stdin: fakeStdin, exitOnCtrlC: false });
 
-		fakeStdin.emit('keypress', 'a', { name: 'a' });
+		fakeStdin.emitData('a');
 		expect(onInput).toHaveBeenCalledTimes(1);
 
 		instance.unmount();
-		fakeStdin.emit('keypress', 'b', { name: 'b' });
+		fakeStdin.emitData('b');
 		// After unmount the input handler is detached.
 		expect(onInput).toHaveBeenCalledTimes(1);
 	});

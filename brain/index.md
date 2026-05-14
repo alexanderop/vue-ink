@@ -23,6 +23,8 @@
 
 - [[renderer/yoga-vs-dom-indices]]
 - [[renderer/nested-text-must-be-virtual]]
+- [[renderer/output-hot-path]]
+- [[renderer/input-pipeline]]
 
 ## Testing
 

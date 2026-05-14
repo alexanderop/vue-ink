@@ -109,7 +109,7 @@ export const componentOf = (render: () => unknown): Component =>
 
 export type FakeStdin = NodeJS.ReadStream & {
 	emit: (event: string, ...args: unknown[]) => boolean;
-	emitKeypress: (str: string | undefined, raw: object | undefined) => void;
+	emitData: (chunk: string | Buffer) => void;
 };
 
 // Mock stdin for input-handling tests. `isTTY` defaults to true; pass false
@@ -128,6 +128,9 @@ export const createFakeStdin = (
 	}
 	(emitter as { resume: () => void }).resume = vi.fn();
 	(emitter as { pause: () => void }).pause = vi.fn();
-	emitter.emitKeypress = (str, raw) => emitter.emit('keypress', str, raw);
+	emitter.emitData = (chunk) => {
+		const buf = typeof chunk === 'string' ? Buffer.from(chunk, 'utf8') : chunk;
+		emitter.emit('data', buf);
+	};
 	return emitter;
 };

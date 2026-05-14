@@ -6,12 +6,19 @@ import { createApp } from './renderer.ts';
 import { createNode, Output, renderNodeToOutput, type DOMElement } from '@vue-ink/core';
 import { createInputManager } from './input.ts';
 import { APP_CONTEXT_KEY, STDIN_CONTEXT_KEY } from './context.ts';
+import {
+	enableKittyKeyboard,
+	disableKittyKeyboard,
+	type KittyKeyboardOptions,
+	type KittyFlagName,
+} from './kitty-keyboard.ts';
 
 export type RenderOptions = {
 	stdout?: NodeJS.WriteStream;
 	stdin?: NodeJS.ReadStream;
 	debug?: boolean;
 	exitOnCtrlC?: boolean;
+	kittyKeyboard?: KittyKeyboardOptions;
 };
 
 export type Instance = {
@@ -71,6 +78,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	});
 	let unmounted = false;
 	let cursorHidden = false;
+	let kittyProtocolEnabled = false;
 
 	// Forward-declared because inputManager/app callbacks below close over it,
 	// but the real body (which itself calls inputManager.destroy/app.unmount)
@@ -79,6 +87,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	const inputManager = createInputManager({
 		stdin,
+		stdout: writeStream,
 		exitOnCtrlC,
 		onCtrlC: () => unmount(),
 	});
@@ -93,8 +102,8 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		stdin,
 		isRawModeSupported: inputManager.isRawModeSupported,
 		setRawMode: inputManager.setRawMode,
+		setBracketedPasteMode: inputManager.setBracketedPasteMode,
 		emitter: inputManager.emitter,
-		internal_exitOnCtrlC: exitOnCtrlC,
 	});
 
 	const getTerminalWidth = (): number => {
@@ -178,6 +187,10 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		}
 		inputManager.destroy();
 		app.unmount();
+		if (kittyProtocolEnabled) {
+			writeStream.write(disableKittyKeyboard());
+			kittyProtocolEnabled = false;
+		}
 		if (useTTYFrame && cursorHidden) {
 			writeStream.write(ansiEscapes.cursorShow);
 			cursorHidden = false;
@@ -188,6 +201,17 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		}
 		exitResolve();
 	};
+
+	// Push kitty keyboard mode (if requested) before app.mount so that any
+	// composable attaching a stdin listener during mount sees the enhanced
+	// format from the first event. Terminals that don't support kitty
+	// silently ignore the escape.
+	const kittyOptions = options.kittyKeyboard;
+	if (kittyOptions && kittyOptions.mode !== 'disabled') {
+		const flags: KittyFlagName[] = kittyOptions.flags ?? ['disambiguateEscapeCodes'];
+		writeStream.write(enableKittyKeyboard(flags));
+		kittyProtocolEnabled = true;
+	}
 
 	app.mount(rootNode);
 

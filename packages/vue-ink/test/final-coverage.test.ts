@@ -203,15 +203,17 @@ describe('renderNodeToOutput: edge cases via direct calls', () => {
 describe('input.ts: edge cases', () => {
 	it('emits empty input for "insert" key (non-printable)', () => {
 		const stdin = createFakeStdin();
+		const stdout = createCaptureStream(20);
 		const events: string[] = [];
 		const mgr = createInputManager({
 			stdin,
+			stdout,
 			exitOnCtrlC: false,
 			onCtrlC: () => {},
 		});
 		mgr.setRawMode(true);
 		mgr.emitter.on('input', (input: string) => events.push(input));
-		stdin.emitKeypress(undefined, { name: 'insert' });
+		stdin.emitData('\x1b[2~');
 		expect(events).toEqual(['']);
 		mgr.destroy();
 	});
