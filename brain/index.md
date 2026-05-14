@@ -26,6 +26,10 @@
 - [[renderer/output-hot-path]]
 - [[renderer/input-pipeline]]
 
+## Composables
+
+- [[composables/vueuse-patterns]]
+
 ## Testing
 
 - [[testing/ink-strategy]]

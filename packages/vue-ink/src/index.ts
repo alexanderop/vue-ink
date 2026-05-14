@@ -23,7 +23,7 @@ export {
 	type UseFocusOptions,
 	type UseFocusReturn,
 	type UseFocusManagerReturn,
-	type WindowSize,
+	type UseWindowSizeReturn,
 	type Key,
 	type KittyFlagName,
 	type KittyKeyboardOptions,

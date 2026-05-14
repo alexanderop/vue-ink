@@ -4,6 +4,7 @@ Source-of-truth code for libraries we depend on. Treat as **read-only reference 
 
 - `repos/core/` — https://github.com/vuejs/core.git @ main (squashed)
 - `repos/ink/` — https://github.com/vadimdemedes/ink.git @ master (squashed)
+- `repos/vueuse/` — https://github.com/vueuse/vueuse.git @ main (squashed)
 
 # Brain
 

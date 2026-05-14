@@ -22,7 +22,7 @@ const App = defineComponent({
 	setup() {
 		const { write: writeStdout } = useStdout();
 		const { write: writeStderr } = useStderr();
-		const size = useWindowSize();
+		const { columns, rows } = useWindowSize();
 		const { exit } = useApp();
 
 		onMounted(() => {
@@ -33,9 +33,9 @@ const App = defineComponent({
 			if (input === 'q') exit();
 		});
 
-		const firstSize = `${size.value.columns}x${size.value.rows}`;
+		const firstSize = `${columns.value}x${rows.value}`;
 		watch(
-			() => `${size.value.columns}x${size.value.rows}`,
+			() => `${columns.value}x${rows.value}`,
 			(next) => {
 				if (next !== firstSize) writeStderr(`resized:${next}\n`);
 			},
@@ -50,7 +50,7 @@ const App = defineComponent({
 		timer.unref();
 
 		return () =>
-			h(Text, null, () => `cols=${size.value.columns} rows=${size.value.rows} tick=${tick.value}`);
+			h(Text, null, () => `cols=${columns.value} rows=${rows.value} tick=${tick.value}`);
 	},
 });
 

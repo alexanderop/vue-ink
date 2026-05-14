@@ -24,9 +24,9 @@ export {
 	type UseFocusOptions,
 	type UseFocusReturn,
 	type UseFocusManagerReturn,
-	type WindowSize,
+	type UseWindowSizeReturn,
 	type Key,
-} from './composables.ts';
+} from './composables/index.ts';
 export {
 	kittyFlags,
 	kittyModifiers,

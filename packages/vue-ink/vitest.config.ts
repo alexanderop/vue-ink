@@ -9,7 +9,11 @@ export default defineConfig({
 	// while we keep tests scoped to packages/vue-ink/test.
 	root: repoRoot,
 	test: {
-		include: ['packages/vue-ink/test/**/*.test.ts'],
+		include: [
+			'packages/vue-ink/test/**/*.test.ts',
+			// VueUse-style: co-locate composable tests next to source.
+			'packages/renderer/src/composables/**/*.test.ts',
+		],
 		pool: 'forks',
 		poolOptions: {
 			forks: {
