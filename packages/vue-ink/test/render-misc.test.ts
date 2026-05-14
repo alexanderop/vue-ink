@@ -200,7 +200,7 @@ describe('render(): debug vs TTY mode', () => {
 		const stdout = createCaptureStream(20);
 		const A = defineComponent({ setup: () => () => h(Text, null, () => 'AAA') });
 		const B = defineComponent({ setup: () => () => h(Text, null, () => 'BBB') });
-		const instance = render(A, { stdout });
+		const instance = render(A, { stdout, interactive: true });
 		await flush();
 		instance.rerender(B);
 		await flush();

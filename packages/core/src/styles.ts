@@ -14,6 +14,12 @@ export type Styles = {
 		| 'truncate-middle'
 		| 'truncate-start';
 
+	readonly position?: 'absolute' | 'relative' | 'static';
+	readonly top?: number | string;
+	readonly right?: number | string;
+	readonly bottom?: number | string;
+	readonly left?: number | string;
+
 	readonly margin?: number;
 	readonly marginX?: number;
 	readonly marginY?: number;
@@ -37,6 +43,14 @@ export type Styles = {
 	readonly flexWrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
 	readonly alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch' | 'baseline';
 	readonly alignSelf?: 'flex-start' | 'center' | 'flex-end' | 'auto' | 'stretch' | 'baseline';
+	readonly alignContent?:
+		| 'flex-start'
+		| 'flex-end'
+		| 'center'
+		| 'stretch'
+		| 'space-between'
+		| 'space-around'
+		| 'space-evenly';
 	readonly justifyContent?:
 		| 'flex-start'
 		| 'flex-end'
@@ -51,6 +65,7 @@ export type Styles = {
 	readonly minHeight?: number | string;
 	readonly maxWidth?: number | string;
 	readonly maxHeight?: number | string;
+	readonly aspectRatio?: number;
 
 	readonly display?: 'flex' | 'none';
 	readonly gap?: number;
@@ -86,6 +101,28 @@ export type Styles = {
 	readonly borderRightDimColor?: boolean;
 
 	readonly backgroundColor?: LiteralUnion<ForegroundColorName, string>;
+};
+
+const POSITION_EDGES = [
+	['top', Yoga.EDGE_TOP],
+	['right', Yoga.EDGE_RIGHT],
+	['bottom', Yoga.EDGE_BOTTOM],
+	['left', Yoga.EDGE_LEFT],
+] as const;
+
+const applyPositionStyles = (node: YogaNode, style: Styles): void => {
+	if ('position' in style) {
+		if (style.position === 'absolute') node.setPositionType(Yoga.POSITION_TYPE_ABSOLUTE);
+		else if (style.position === 'static') node.setPositionType(Yoga.POSITION_TYPE_STATIC);
+		else node.setPositionType(Yoga.POSITION_TYPE_RELATIVE);
+	}
+
+	for (const [key, edge] of POSITION_EDGES) {
+		if (!(key in style)) continue;
+		const value = style[key];
+		if (typeof value === 'string') node.setPositionPercent(edge, Number.parseFloat(value));
+		else if (typeof value === 'number') node.setPosition(edge, value);
+	}
 };
 
 const applyMarginStyles = (node: YogaNode, style: Styles): void => {
@@ -152,6 +189,20 @@ const applyFlexStyles = (node: YogaNode, style: Styles): void => {
 		if (style.alignSelf === 'baseline') node.setAlignSelf(Yoga.ALIGN_BASELINE);
 	}
 
+	if ('alignContent' in style) {
+		// Default packing matches ink: keep wrapped rows at the cross-axis start
+		// so fixed-height boxes don't grow unexpected gaps.
+		if (style.alignContent === 'flex-start' || !style.alignContent)
+			node.setAlignContent(Yoga.ALIGN_FLEX_START);
+		if (style.alignContent === 'center') node.setAlignContent(Yoga.ALIGN_CENTER);
+		if (style.alignContent === 'flex-end') node.setAlignContent(Yoga.ALIGN_FLEX_END);
+		if (style.alignContent === 'space-between')
+			node.setAlignContent(Yoga.ALIGN_SPACE_BETWEEN);
+		if (style.alignContent === 'space-around') node.setAlignContent(Yoga.ALIGN_SPACE_AROUND);
+		if (style.alignContent === 'space-evenly') node.setAlignContent(Yoga.ALIGN_SPACE_EVENLY);
+		if (style.alignContent === 'stretch') node.setAlignContent(Yoga.ALIGN_STRETCH);
+	}
+
 	if ('justifyContent' in style) {
 		if (style.justifyContent === 'flex-start' || !style.justifyContent)
 			node.setJustifyContent(Yoga.JUSTIFY_FLEX_START);
@@ -202,6 +253,10 @@ const applyDimensionStyles = (node: YogaNode, style: Styles): void => {
 			node.setMaxHeightPercent(Number.parseInt(style.maxHeight, 10));
 		else node.setMaxHeight(style.maxHeight);
 	}
+
+	if ('aspectRatio' in style && typeof style.aspectRatio === 'number') {
+		node.setAspectRatio(style.aspectRatio);
+	}
 };
 
 const applyDisplayStyles = (node: YogaNode, style: Styles): void => {
@@ -233,6 +288,7 @@ const applyBorderStyles = (node: YogaNode, style: Styles): void => {
 };
 
 const styles = (node: YogaNode, style: Styles = {}): void => {
+	applyPositionStyles(node, style);
 	applyMarginStyles(node, style);
 	applyPaddingStyles(node, style);
 	applyFlexStyles(node, style);

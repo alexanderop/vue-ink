@@ -13,6 +13,10 @@ const sizeKeys = [
 	'maxWidth',
 	'maxHeight',
 	'flexBasis',
+	'top',
+	'right',
+	'bottom',
+	'left',
 ] as const;
 
 const numberKeys = [
@@ -35,13 +39,16 @@ const numberKeys = [
 	'gap',
 	'columnGap',
 	'rowGap',
+	'aspectRatio',
 ] as const;
 
 const stringKeys = [
+	'position',
 	'flexDirection',
 	'flexWrap',
 	'alignItems',
 	'alignSelf',
+	'alignContent',
 	'justifyContent',
 	'display',
 	'overflow',

@@ -1,33 +1,58 @@
-import { inject, onBeforeUnmount, watch, ref, type Ref } from 'vue';
+import { inject, onBeforeUnmount, watch, ref, type InjectionKey, type Ref } from 'vue';
 import {
 	APP_CONTEXT_KEY,
 	STDIN_CONTEXT_KEY,
+	STDOUT_CONTEXT_KEY,
+	STDERR_CONTEXT_KEY,
+	ACCESSIBILITY_CONTEXT_KEY,
 	type AppContext,
 	type StdinContext,
+	type StdoutContext,
+	type StderrContext,
 } from './context.ts';
 import type { Key } from './input.ts';
 
-const requireApp = (): AppContext => {
-	const ctx = inject(APP_CONTEXT_KEY);
+const requireContext = <T>(key: InjectionKey<T>, callSite: string): T => {
+	const ctx = inject(key);
 	if (!ctx) {
 		throw new Error(
-			'useApp() must be called inside a component mounted via vue-ink render().',
+			`${callSite} must be called inside a component mounted via vue-ink render().`,
 		);
 	}
 	return ctx;
 };
 
-const requireStdin = (): StdinContext => {
-	const ctx = inject(STDIN_CONTEXT_KEY);
-	if (!ctx) {
-		throw new Error(
-			'useStdin()/useInput() must be called inside a component mounted via vue-ink render().',
-		);
-	}
-	return ctx;
-};
+const requireStdin = (): StdinContext =>
+	requireContext(STDIN_CONTEXT_KEY, 'useStdin()/useInput()');
 
-export const useApp = (): AppContext => requireApp();
+export const useApp = (): AppContext => requireContext(APP_CONTEXT_KEY, 'useApp()');
+export const useStdout = (): StdoutContext => requireContext(STDOUT_CONTEXT_KEY, 'useStdout()');
+export const useStderr = (): StderrContext => requireContext(STDERR_CONTEXT_KEY, 'useStderr()');
+
+export const useIsScreenReaderEnabled = (): Ref<boolean> =>
+	requireContext(ACCESSIBILITY_CONTEXT_KEY, 'useIsScreenReaderEnabled()').isScreenReaderEnabled;
+
+export type WindowSize = { columns: number; rows: number };
+
+const readWindowSize = (stdout: NodeJS.WriteStream): WindowSize => ({
+	columns: typeof stdout.columns === 'number' && stdout.columns > 0 ? stdout.columns : 80,
+	rows: typeof stdout.rows === 'number' && stdout.rows > 0 ? stdout.rows : 24,
+});
+
+export const useWindowSize = (): Ref<WindowSize> => {
+	const { stdout } = useStdout();
+	const size = ref<WindowSize>(readWindowSize(stdout));
+	const onResize = (): void => {
+		const next = readWindowSize(stdout);
+		if (next.columns === size.value.columns && next.rows === size.value.rows) return;
+		size.value = next;
+	};
+	stdout.on('resize', onResize);
+	onBeforeUnmount(() => {
+		stdout.off('resize', onResize);
+	});
+	return size;
+};
 
 export type UseStdinReturn = {
 	stdin: NodeJS.ReadStream;

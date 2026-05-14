@@ -37,6 +37,7 @@ export type RenderToStringOptions = {
 	columns?: number;
 	stdin?: NodeJS.ReadStream;
 	exitOnCtrlC?: boolean;
+	interactive?: boolean;
 };
 
 // Ink-style render helper: mount a component, flush vue's scheduler, return
@@ -51,6 +52,7 @@ export const renderToString = async (
 		stdout,
 		stdin: options.stdin,
 		exitOnCtrlC: options.exitOnCtrlC,
+		interactive: options.interactive ?? true,
 	});
 	await flush();
 	instance.unmount();
@@ -66,6 +68,7 @@ export const renderToStringRaw = async (
 		stdout,
 		stdin: options.stdin,
 		exitOnCtrlC: options.exitOnCtrlC,
+		interactive: options.interactive ?? true,
 	});
 	await flush();
 	instance.unmount();
@@ -90,6 +93,7 @@ export const renderReusable = async (
 		stdout,
 		stdin: options.stdin,
 		exitOnCtrlC: options.exitOnCtrlC,
+		interactive: options.interactive ?? true,
 	});
 	await flush();
 	return {

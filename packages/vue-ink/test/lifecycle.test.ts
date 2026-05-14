@@ -17,7 +17,7 @@ describe('comments are invisible', () => {
 					h(Text, null, () => 'b'),
 				]),
 		});
-		const instance = render(Demo, { stdout });
+		const instance = render(Demo, { stdout, interactive: true });
 		await flush();
 		const out = stripAnsi(stdout.frames.join('')).replace(/\n+$/, '');
 		instance.unmount();
@@ -33,7 +33,7 @@ describe('rerender preserves component state', () => {
 			setup: () => () => h(Text, null, () => `n=${counter.value}`),
 		});
 
-		const instance = render(App, { stdout });
+		const instance = render(App, { stdout, interactive: true });
 		await flush();
 
 		counter.value = 1;
@@ -57,7 +57,7 @@ describe('resize triggers a re-layout', () => {
 		const Demo = defineComponent({
 			setup: () => () => h(Box, { width: '100%' }, () => h(Text, null, () => 'X')),
 		});
-		const instance = render(Demo, { stdout });
+		const instance = render(Demo, { stdout, interactive: true });
 		await flush();
 		const before = stdout.frames.length;
 

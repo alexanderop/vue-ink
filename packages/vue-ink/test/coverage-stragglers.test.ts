@@ -167,7 +167,7 @@ describe('renderer host: key/ref bypass + setElementText', () => {
 			setup: () => () => h('ink-text', null, text.value),
 		});
 		const stdout = createCaptureStream(20);
-		const instance = render(Demo, { stdout });
+		const instance = render(Demo, { stdout, interactive: true });
 		await flush();
 		// Patch from one TEXT_CHILDREN value to another — drives setElementText
 		// while there are existing children.

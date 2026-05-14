@@ -1,8 +1,17 @@
-export { default as render, type RenderOptions, type Instance } from './render.ts';
+export {
+	default as render,
+	type RenderOptions,
+	type Instance,
+	type RenderMetrics,
+} from './render.ts';
 export { createApp } from './renderer.ts';
 export {
 	useApp,
 	useStdin,
+	useStdout,
+	useStderr,
+	useWindowSize,
+	useIsScreenReaderEnabled,
 	useInput,
 	usePaste,
 	type InputHandler,
@@ -10,6 +19,7 @@ export {
 	type UseStdinReturn,
 	type PasteHandler,
 	type UsePasteOptions,
+	type WindowSize,
 	type Key,
 } from './composables.ts';
 export {
