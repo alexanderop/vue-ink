@@ -16,7 +16,8 @@
 		"typecheck": "tsc --noEmit",
 		"build": "tsc --noEmit",
 		"test": "pnpm typecheck && vitest run",
-		"test:coverage": "vitest run --coverage"
+		"test:coverage": "vitest run --coverage",
+		"bench": "vitest bench --run --config vitest.bench.config.ts"
 	},
 	"dependencies": {
 		"@vue-ink/components": "workspace:*",

@@ -9,6 +9,7 @@
 		"typecheck": "pnpm -r typecheck",
 		"test": "pnpm -r test",
 		"test:coverage": "pnpm --filter vue-ink test:coverage",
+		"bench": "pnpm --filter vue-ink bench",
 		"build": "pnpm -r build",
 		"lint": "vp lint",
 		"vueink": "node --import=tsx packages/vue-ink/bin/vueink.ts"
