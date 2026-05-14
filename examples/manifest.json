@@ -1,0 +1,22 @@
+[
+	{
+		"name": "counter",
+		"description": "Reactive ref — increments a green counter every 100ms."
+	},
+	{
+		"name": "colors",
+		"description": "Text in every supported foreground and background color."
+	},
+	{
+		"name": "text-styles",
+		"description": "bold, italic, underline, strikethrough, inverse, dim."
+	},
+	{
+		"name": "flex-layout",
+		"description": "Box layout — flexDirection, justifyContent, alignItems, gap, padding."
+	},
+	{
+		"name": "input",
+		"description": "useInput / useApp — live keypress display; q or Esc to quit."
+	}
+]

@@ -1,0 +1,18 @@
+packages:
+  - packages/*
+  - examples
+  - examples/*
+
+allowBuilds:
+  esbuild: true
+  lefthook: true
+  node-pty: true
+
+catalog:
+  vue: ^3.5.13
+  '@vue/runtime-core': ^3.5.13
+  yoga-layout: ~3.2.1
+  typescript: ^5.7.2
+  '@types/node': ^22.10.2
+  vitest: ^2.1.8
+  tsx: ^4.19.2

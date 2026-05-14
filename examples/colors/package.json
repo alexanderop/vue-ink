@@ -1,0 +1,17 @@
+{
+	"name": "@vue-ink-examples/colors",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"start": "node --import=tsx ./index.ts"
+	},
+	"dependencies": {
+		"vue": "catalog:",
+		"vue-ink": "workspace:*"
+	},
+	"devDependencies": {
+		"@vue/compiler-sfc": "^3.5.13",
+		"tsx": "catalog:"
+	}
+}

@@ -1,0 +1,27 @@
+import { chmodSync, existsSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+
+process.env['FORCE_COLOR'] = 'true';
+
+// pnpm 11's tarball extraction drops the execute bit on node-pty's
+// `spawn-helper` prebuilt binary, causing `posix_spawnp failed.` at runtime.
+// Restore it once per test run so the counter PTY test works idempotently
+// without a custom postinstall hook.
+const ensureSpawnHelperExecutable = (): void => {
+	try {
+		const req = createRequire(import.meta.url);
+		const ptyPkg = req.resolve('node-pty/package.json');
+		const platforms = ['darwin-arm64', 'darwin-x64', 'linux-x64', 'linux-arm64'];
+		for (const platform of platforms) {
+			const helper = path.join(path.dirname(ptyPkg), 'prebuilds', platform, 'spawn-helper');
+			if (existsSync(helper) && (statSync(helper).mode & 0o111) === 0) {
+				chmodSync(helper, 0o755);
+			}
+		}
+	} catch {
+		// node-pty not installed in this package — nothing to do.
+	}
+};
+
+ensureSpawnHelperExecutable();

@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 register('../vue-loader.mjs', pathToFileURL(`${import.meta.dirname  }/`).href);
 
 const { render } = await import('vue-ink');
-const { default: Counter } = await import('./counter.vue');
+const { default: TextStyles } = await import('./text-styles.vue');
 
-const instance = render(Counter);
+const instance = render(TextStyles);
 await instance.waitUntilExit();

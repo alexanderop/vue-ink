@@ -1,0 +1,19 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: lint
+      glob:
+        - "*.ts"
+        - "*.tsx"
+        - "*.js"
+        - "*.mjs"
+        - "*.vue"
+      run: pnpm exec vp lint {staged_files}
+      stage_fixed: true
+
+    - name: typecheck
+      glob:
+        - "*.ts"
+        - "*.tsx"
+        - "*.vue"
+      run: pnpm typecheck

@@ -17,13 +17,13 @@ Requires Node.js `>=22`.
 ## Quick start
 
 ```ts
-import {render, Text} from 'vue-ink';
-import {defineComponent} from 'vue';
+import { render, Text } from 'vue-ink';
+import { defineComponent } from 'vue';
 
 const App = defineComponent({
-  setup() {
-    return () => h(Text, {color: 'green'}, () => 'Hello world');
-  },
+	setup() {
+		return () => h(Text, { color: 'green' }, () => 'Hello world');
+	},
 });
 
 render(App);
@@ -34,30 +34,30 @@ render(App);
 ```vue
 <!-- counter.vue -->
 <script setup>
-import {ref, onMounted, onBeforeUnmount} from 'vue';
-import {Text} from 'vue-ink';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { Text } from 'vue-ink';
 
 const counter = ref(0);
 let timer = null;
 
 onMounted(() => {
-  timer = setInterval(() => {
-    counter.value++;
-  }, 100);
+	timer = setInterval(() => {
+		counter.value++;
+	}, 100);
 });
 
 onBeforeUnmount(() => {
-  if (timer) clearInterval(timer);
+	if (timer) clearInterval(timer);
 });
 </script>
 
 <template>
-  <Text color="green">{{ counter }} tests passed</Text>
+	<Text color="green">{{ counter }} tests passed</Text>
 </template>
 ```
 
 ```ts
-import {render} from 'vue-ink';
+import { render } from 'vue-ink';
 import Counter from './counter.vue';
 
 const instance = render(Counter);
@@ -74,15 +74,15 @@ Mounts a Vue component to the terminal.
 
 ```ts
 type RenderOptions = {
-  stdout?: NodeJS.WriteStream; // defaults to process.stdout
-  debug?: boolean;             // append every frame instead of erasing previous
+	stdout?: NodeJS.WriteStream; // defaults to process.stdout
+	debug?: boolean; // append every frame instead of erasing previous
 };
 
 type Instance = {
-  rerender(component: Component): void;
-  unmount(): void;
-  waitUntilExit(): Promise<void>;
-  clear(): void;
+	rerender(component: Component): void;
+	unmount(): void;
+	waitUntilExit(): Promise<void>;
+	clear(): void;
 };
 ```
 
@@ -101,10 +101,10 @@ Flexbox container. Accepts the layout-related props you'd expect from Ink:
 
 ```vue
 <template>
-  <Box flex-direction="column" padding="1" gap="1">
-    <Text bold>Title</Text>
-    <Text>Body</Text>
-  </Box>
+	<Box flex-direction="column" padding="1" gap="1">
+		<Text bold>Title</Text>
+		<Text>Body</Text>
+	</Box>
 </template>
 ```
 
@@ -118,7 +118,7 @@ Renders styled text. Props:
 
 ```vue
 <template>
-  <Text color="cyan" bold>Loading…</Text>
+	<Text color="cyan" bold>Loading…</Text>
 </template>
 ```
 
