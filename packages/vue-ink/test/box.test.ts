@@ -1,18 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { h, defineComponent, nextTick } from 'vue';
-import stripAnsi from 'strip-ansi';
-import { render, Box, Text } from '../src/index.ts';
-import { createCaptureStream } from './helpers.ts';
-
-const renderOnce = async (component: ReturnType<typeof defineComponent>): Promise<string> => {
-	const stdout = createCaptureStream(20);
-	const instance = render(component, { stdout });
-	await nextTick();
-	await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
-	const output = stdout.frames.join('');
-	instance.unmount();
-	return stripAnsi(output).replace(/\n+$/, '');
-};
+import { h, defineComponent } from 'vue';
+import { Box, Text } from '../src/index.ts';
+import { renderToString } from './helpers.ts';
 
 describe('Box layout', () => {
 	it('lays out children in a row with justifyContent space-between', async () => {
@@ -28,7 +17,7 @@ describe('Box layout', () => {
 					() => [h(Text, null, () => 'A'), h(Text, null, () => 'B')],
 				),
 		});
-		const out = await renderOnce(Demo);
+		const out = await renderToString(Demo, { columns: 20 });
 		expect(out).toBe('A                  B');
 	});
 
@@ -36,7 +25,7 @@ describe('Box layout', () => {
 		const Demo = defineComponent({
 			setup: () => () => h(Box, { width: 10, paddingLeft: 2 }, () => h(Text, null, () => 'hi')),
 		});
-		const out = await renderOnce(Demo);
+		const out = await renderToString(Demo, { columns: 20 });
 		expect(out).toBe('  hi');
 	});
 
@@ -48,7 +37,7 @@ describe('Box layout', () => {
 					h(Text, null, () => 'two'),
 				]),
 		});
-		const out = await renderOnce(Demo);
+		const out = await renderToString(Demo, { columns: 20 });
 		expect(out).toMatchInlineSnapshot(`
 			"one
 			two"
@@ -68,7 +57,7 @@ describe('Box layout', () => {
 					() => h(Text, null, () => 'X'),
 				),
 		});
-		const out = await renderOnce(Demo);
+		const out = await renderToString(Demo, { columns: 20 });
 		expect(out).toBe('         X');
 	});
 
@@ -89,7 +78,7 @@ describe('Box layout', () => {
 						),
 				),
 		});
-		const out = await renderOnce(Demo);
+		const out = await renderToString(Demo, { columns: 20 });
 		expect(out).toBe('abc');
 	});
 
@@ -98,7 +87,7 @@ describe('Box layout', () => {
 			setup: () => () =>
 				h(Box, { height: 3, flexDirection: 'column' }, () => [h(Text, null, () => 'a')]),
 		});
-		const out = await renderOnce(Demo);
+		const out = await renderToString(Demo, { columns: 20 });
 		expect(out.split('\n').length).toBeGreaterThanOrEqual(1);
 		expect(out).toContain('a');
 	});

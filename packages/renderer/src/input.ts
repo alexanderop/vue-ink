@@ -110,6 +110,9 @@ export const createInputManager = ({
 	};
 
 	const startListening = (): void => {
+		// Defensive: callers gate this on rawModeUsers transitioning 0→1, so
+		// the early-return is never tripped through the public API.
+		/* v8 ignore next */
 		if (listening) return;
 		readline.emitKeypressEvents(stdin);
 		stdin.on('keypress', handleKeypress);

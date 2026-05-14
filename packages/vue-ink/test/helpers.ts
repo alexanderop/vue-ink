@@ -1,4 +1,9 @@
 import { Writable } from 'node:stream';
+import { EventEmitter } from 'node:events';
+import { defineComponent, h, nextTick, type Component } from 'vue';
+import stripAnsi from 'strip-ansi';
+import { vi } from 'vitest';
+import { render } from '../src/index.ts';
 
 export const createCaptureStream = (
 	columns = 80,
@@ -21,4 +26,108 @@ export const createCaptureStream = (
 	stream.isTTY = false;
 	stream.frames = frames;
 	return stream as unknown as NodeJS.WriteStream & { frames: string[] };
+};
+
+export const flush = async (): Promise<void> => {
+	await nextTick();
+	await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
+};
+
+export type RenderToStringOptions = {
+	columns?: number;
+	stdin?: NodeJS.ReadStream;
+	exitOnCtrlC?: boolean;
+};
+
+// Ink-style render helper: mount a component, flush vue's scheduler, return
+// the joined frames. `raw=true` keeps ANSI sequences; otherwise strips them
+// and trims trailing newlines for stable snapshot comparison.
+export const renderToString = async (
+	component: Component,
+	options: RenderToStringOptions & { raw?: false } = {},
+): Promise<string> => {
+	const stdout = createCaptureStream(options.columns ?? 80);
+	const instance = render(component, {
+		stdout,
+		stdin: options.stdin,
+		exitOnCtrlC: options.exitOnCtrlC,
+	});
+	await flush();
+	instance.unmount();
+	return stripAnsi(stdout.frames.join('')).replace(/\n+$/, '');
+};
+
+export const renderToStringRaw = async (
+	component: Component,
+	options: RenderToStringOptions = {},
+): Promise<string> => {
+	const stdout = createCaptureStream(options.columns ?? 80);
+	const instance = render(component, {
+		stdout,
+		stdin: options.stdin,
+		exitOnCtrlC: options.exitOnCtrlC,
+	});
+	await flush();
+	instance.unmount();
+	return stdout.frames.join('');
+};
+
+export type RenderResult = {
+	stdout: ReturnType<typeof createCaptureStream>;
+	instance: ReturnType<typeof render>;
+	flush: () => Promise<void>;
+	output: () => string;
+	rawOutput: () => string;
+};
+
+// For tests that need to rerender or assert across multiple frames.
+export const renderReusable = async (
+	component: Component,
+	options: RenderToStringOptions = {},
+): Promise<RenderResult> => {
+	const stdout = createCaptureStream(options.columns ?? 80);
+	const instance = render(component, {
+		stdout,
+		stdin: options.stdin,
+		exitOnCtrlC: options.exitOnCtrlC,
+	});
+	await flush();
+	return {
+		stdout,
+		instance,
+		flush,
+		output: () => stripAnsi(stdout.frames.join('')).replace(/\n+$/, ''),
+		rawOutput: () => stdout.frames.join(''),
+	};
+};
+
+// Convenience for one-shot wrap of a slot function into a defineComponent.
+export const componentOf = (render: () => unknown): Component =>
+	defineComponent({
+		setup: () => () => render() as ReturnType<typeof h>,
+	});
+
+export type FakeStdin = NodeJS.ReadStream & {
+	emit: (event: string, ...args: unknown[]) => boolean;
+	emitKeypress: (str: string | undefined, raw: object | undefined) => void;
+};
+
+// Mock stdin for input-handling tests. `isTTY` defaults to true; pass false
+// to exercise the no-raw-mode path. `supportsRawMode: false` keeps isTTY=true
+// but omits setRawMode so isRawModeSupported reports false.
+export const createFakeStdin = (
+	options: { isTTY?: boolean; supportsRawMode?: boolean } = {},
+): FakeStdin => {
+	const { isTTY = true, supportsRawMode = true } = options;
+	const emitter = new EventEmitter() as unknown as FakeStdin;
+	(emitter as { isTTY: boolean }).isTTY = isTTY;
+	if (supportsRawMode) {
+		(emitter as { setRawMode: (mode: boolean) => unknown }).setRawMode = vi.fn(
+			() => emitter,
+		);
+	}
+	(emitter as { resume: () => void }).resume = vi.fn();
+	(emitter as { pause: () => void }).pause = vi.fn();
+	emitter.emitKeypress = (str, raw) => emitter.emit('keypress', str, raw);
+	return emitter;
 };

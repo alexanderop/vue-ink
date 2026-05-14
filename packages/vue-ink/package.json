@@ -15,7 +15,8 @@
 	"scripts": {
 		"typecheck": "tsc --noEmit",
 		"build": "tsc --noEmit",
-		"test": "pnpm typecheck && vitest run"
+		"test": "pnpm typecheck && vitest run",
+		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {
 		"@vue-ink/components": "workspace:*",
@@ -23,7 +24,10 @@
 	},
 	"devDependencies": {
 		"@types/node": "catalog:",
+		"@vitest/coverage-v8": "catalog:",
+		"@vue-ink/core": "workspace:*",
 		"@vue/compiler-sfc": "^3.5.13",
+		"chalk": "^5.6.2",
 		"node-pty": "^1.0.0",
 		"strip-ansi": "^7.1.0",
 		"tsx": "catalog:",

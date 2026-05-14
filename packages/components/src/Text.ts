@@ -1,6 +1,8 @@
-import { computed, defineComponent, h, type PropType, type VNodeChild } from 'vue';
+import { computed, defineComponent, h, inject, type PropType, type VNodeChild } from 'vue';
 import chalk from 'chalk';
 import { colorize, type Styles } from '@vue-ink/core';
+import { BACKGROUND_COLOR_INJECT_KEY } from './background-context.ts';
+import { useTextHost } from './text-context.ts';
 
 export type TextProps = {
 	color?: string;
@@ -34,17 +36,22 @@ const Text = defineComponent({
 		},
 	},
 	setup(props, { slots }) {
+		// A <Box backgroundColor> ancestor provides this getter; the Text's own
+		// `backgroundColor` prop takes precedence.
+		const inheritedBackground = inject(BACKGROUND_COLOR_INJECT_KEY, null);
+		const tag = useTextHost();
 		// Rebuild the chalk pipeline only when a relevant style flag changes —
 		// this keeps `internal_transform`'s identity stable across renders, so
 		// patchProp's identity short-circuit avoids redundant work.
 		const transform = computed(() => {
 			const { color, backgroundColor, dimColor, bold, italic, underline, strikethrough, inverse } =
 				props;
+			const bg = backgroundColor ?? inheritedBackground?.();
 			return (text: string): string => {
 				let out = text;
 				if (dimColor) out = chalk.dim(out);
 				if (color) out = colorize(out, color, 'foreground');
-				if (backgroundColor) out = colorize(out, backgroundColor, 'background');
+				if (bg) out = colorize(out, bg, 'background');
 				if (bold) out = chalk.bold(out);
 				if (italic) out = chalk.italic(out);
 				if (underline) out = chalk.underline(out);
@@ -57,7 +64,7 @@ const Text = defineComponent({
 		return () => {
 			const children = (slots.default?.() ?? []) as VNodeChild[];
 			return h(
-				'ink-text',
+				tag,
 				{
 					style: {
 						flexGrow: 0,

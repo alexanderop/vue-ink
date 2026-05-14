@@ -1,20 +1,13 @@
 // Adapted from ink (MIT) — https://github.com/vadimdemedes/ink
 import widestLine from 'widest-line';
-import indentString from 'indent-string';
 import Yoga from 'yoga-layout';
 import wrapText from './wrap-text.ts';
 import getMaxWidth from './get-max-width.ts';
 import squashTextNodes from './squash-text-nodes.ts';
+import renderBorder from './render-border.ts';
+import renderBackground from './render-background.ts';
 import { type DOMElement } from './dom.ts';
 import type Output from './output.ts';
-
-const applyPaddingToText = (node: DOMElement, text: string): string => {
-	const yogaNode = node.childNodes[0]?.yogaNode;
-	if (!yogaNode) return text;
-	const offsetX = yogaNode.getComputedLeft();
-	const offsetY = yogaNode.getComputedTop();
-	return '\n'.repeat(offsetY) + indentString(text, offsetX);
-};
 
 export type OutputTransformer = (s: string, index: number) => string;
 
@@ -53,7 +46,6 @@ const renderNodeToOutput = (
 				text = wrapText(text, maxWidth, textWrap);
 			}
 
-			text = applyPaddingToText(node, text);
 			output.write(x, y, text, { transformers: newTransformers });
 		}
 		return;
@@ -72,6 +64,11 @@ const renderNodeToOutput = (
 			});
 			clipped = true;
 		}
+	}
+
+	if (node.nodeName === 'ink-box') {
+		renderBackground(x, y, node, output);
+		renderBorder(x, y, node, output);
 	}
 
 	if (node.nodeName === 'ink-root' || node.nodeName === 'ink-box') {

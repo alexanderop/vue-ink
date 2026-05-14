@@ -21,6 +21,9 @@ export type Instance = {
 	clear: () => void;
 };
 
+// Placeholder for forward-declared resolve/reject/unmount slots — replaced
+// synchronously before the surrounding code reads them.
+/* v8 ignore next */
 const noop = (): void => {};
 
 const renderTree = (

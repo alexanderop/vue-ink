@@ -8,14 +8,17 @@
 	"scripts": {
 		"typecheck": "pnpm -r typecheck",
 		"test": "pnpm -r test",
+		"test:coverage": "pnpm --filter vue-ink test:coverage",
 		"build": "pnpm -r build",
 		"lint": "vp lint",
 		"vueink": "node --import=tsx packages/vue-ink/bin/vueink.ts"
 	},
 	"devDependencies": {
+		"@vitest/coverage-v8": "catalog:",
 		"lefthook": "^1.13.6",
 		"tsx": "catalog:",
-		"vite-plus": "^0.1.21"
+		"vite-plus": "^0.1.21",
+		"vitest": "catalog:"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

@@ -1,5 +1,8 @@
 // Adapted from ink (MIT) — https://github.com/vadimdemedes/ink
-// Trimmed to MVP: no borders, no positioning.
+// Trimmed to MVP: no positioning yet.
+import { type Boxes, type BoxStyle } from 'cli-boxes';
+import { type ForegroundColorName } from 'ansi-styles';
+import { type LiteralUnion } from 'type-fest';
 import Yoga, { type Node as YogaNode } from 'yoga-layout';
 
 export type Styles = {
@@ -57,6 +60,32 @@ export type Styles = {
 	readonly overflow?: 'visible' | 'hidden';
 	readonly overflowX?: 'visible' | 'hidden';
 	readonly overflowY?: 'visible' | 'hidden';
+
+	readonly borderStyle?: keyof Boxes | BoxStyle;
+	readonly borderTop?: boolean;
+	readonly borderBottom?: boolean;
+	readonly borderLeft?: boolean;
+	readonly borderRight?: boolean;
+
+	readonly borderColor?: LiteralUnion<ForegroundColorName, string>;
+	readonly borderTopColor?: LiteralUnion<ForegroundColorName, string>;
+	readonly borderBottomColor?: LiteralUnion<ForegroundColorName, string>;
+	readonly borderLeftColor?: LiteralUnion<ForegroundColorName, string>;
+	readonly borderRightColor?: LiteralUnion<ForegroundColorName, string>;
+
+	readonly borderBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
+	readonly borderTopBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
+	readonly borderBottomBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
+	readonly borderLeftBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
+	readonly borderRightBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
+
+	readonly borderDimColor?: boolean;
+	readonly borderTopDimColor?: boolean;
+	readonly borderBottomDimColor?: boolean;
+	readonly borderLeftDimColor?: boolean;
+	readonly borderRightDimColor?: boolean;
+
+	readonly backgroundColor?: LiteralUnion<ForegroundColorName, string>;
 };
 
 const applyMarginStyles = (node: YogaNode, style: Styles): void => {
@@ -187,12 +216,29 @@ const applyGapStyles = (node: YogaNode, style: Styles): void => {
 	if ('rowGap' in style) node.setGap(Yoga.GUTTER_ROW, style.rowGap ?? 0);
 };
 
+const BORDER_EDGES = [
+	['borderTop', Yoga.EDGE_TOP],
+	['borderBottom', Yoga.EDGE_BOTTOM],
+	['borderLeft', Yoga.EDGE_LEFT],
+	['borderRight', Yoga.EDGE_RIGHT],
+] as const;
+
+const applyBorderStyles = (node: YogaNode, style: Styles): void => {
+	if (!('borderStyle' in style) && !BORDER_EDGES.some(([key]) => key in style)) return;
+
+	const borderWidth = style.borderStyle ? 1 : 0;
+	for (const [key, edge] of BORDER_EDGES) {
+		node.setBorder(edge, style[key] === false ? 0 : borderWidth);
+	}
+};
+
 const styles = (node: YogaNode, style: Styles = {}): void => {
 	applyMarginStyles(node, style);
 	applyPaddingStyles(node, style);
 	applyFlexStyles(node, style);
 	applyDimensionStyles(node, style);
 	applyDisplayStyles(node, style);
+	applyBorderStyles(node, style);
 	applyGapStyles(node, style);
 };
 

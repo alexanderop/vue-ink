@@ -1,4 +1,5 @@
 // Adapted from ink (MIT) — https://github.com/vadimdemedes/ink
+import sanitizeAnsi from './sanitize-ansi.ts';
 import { type DOMElement } from './dom.ts';
 
 const squashTextNodes = (node: DOMElement): string => {
@@ -8,7 +9,7 @@ const squashTextNodes = (node: DOMElement): string => {
 		if (childNode === undefined) continue;
 
 		if (childNode.nodeName === '#text') {
-			parts.push(childNode.nodeValue);
+			parts.push(sanitizeAnsi(childNode.nodeValue));
 			continue;
 		}
 

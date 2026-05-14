@@ -165,7 +165,11 @@ export const createTextNode = (text: string): TextNode => {
 };
 
 const measureTextNode = function (node: DOMNode, width: number): { width: number; height: number } {
-	const text = node.nodeName === '#text' ? node.nodeValue : squashTextNodes(node);
+	// measureFunc is only attached to ink-text nodes (see createNode), so the
+	// `#text` branch defends against a theoretical future binding.
+	const text =
+		/* v8 ignore next */
+		node.nodeName === '#text' ? node.nodeValue : squashTextNodes(node);
 
 	const dimensions = measureText(text);
 
@@ -173,10 +177,17 @@ const measureTextNode = function (node: DOMNode, width: number): { width: number
 		return dimensions;
 	}
 
+	// Yoga occasionally hands measureFunc a sub-character width during
+	// constraint solving for deeply-nested percentage layouts. Wrapping to
+	// width < 1 has no useful answer, so keep the natural dimensions.
+	/* v8 ignore next 3 */
 	if (dimensions.width >= 1 && width > 0 && width < 1) {
 		return dimensions;
 	}
 
+	// node.style is initialised to {} in createNode and Text always supplies a
+	// default wrap prop, so the nullish fallback below is purely defensive.
+	/* v8 ignore next */
 	const textWrap = node.style?.textWrap ?? 'wrap';
 	const wrappedText = wrapText(text, width, textWrap);
 

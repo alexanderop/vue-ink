@@ -67,11 +67,15 @@ export const useInput = (handler: InputHandler, options: UseInputOptions = {}): 
 
 	let listening = false;
 	const wrapped = (input: string, key: Key): void => {
+		// Defensive: the isActive watcher detaches `wrapped` before emitting
+		// false → true → false races, so this guard is normally unreachable.
+		/* v8 ignore next */
 		if (!isActiveRef.value) return;
 		handler(input, key);
 	};
 
 	const start = (): void => {
+		/* v8 ignore next */
 		if (listening) return;
 		setRawMode(true);
 		emitter.on('input', wrapped);

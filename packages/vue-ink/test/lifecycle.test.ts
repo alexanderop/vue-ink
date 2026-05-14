@@ -1,14 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { h, defineComponent, nextTick, ref } from 'vue';
+import { h, defineComponent, ref } from 'vue';
 import Yoga from 'yoga-layout';
 import stripAnsi from 'strip-ansi';
 import { render, Box, Text } from '../src/index.ts';
-import { createCaptureStream } from './helpers.ts';
-
-const flush = async (): Promise<void> => {
-	await nextTick();
-	await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
-};
+import { createCaptureStream, flush } from './helpers.ts';
 
 describe('comments are invisible', () => {
 	it('renders no spurious whitespace from v-if comment anchors', async () => {

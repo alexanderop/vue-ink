@@ -10,4 +10,14 @@ export {
 	type UseStdinReturn,
 	type Key,
 } from '@vue-ink/renderer';
-export { Box, Text, type BoxProps, type TextProps } from '@vue-ink/components';
+export {
+	Box,
+	Text,
+	Newline,
+	Spacer,
+	Transform,
+	type BoxProps,
+	type TextProps,
+	type NewlineProps,
+	type TransformProps,
+} from '@vue-ink/components';

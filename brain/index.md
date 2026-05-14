@@ -22,6 +22,11 @@
 ## Renderer
 
 - [[renderer/yoga-vs-dom-indices]]
+- [[renderer/nested-text-must-be-virtual]]
+
+## Testing
+
+- [[testing/ink-strategy]]
 
 ## Other
 
