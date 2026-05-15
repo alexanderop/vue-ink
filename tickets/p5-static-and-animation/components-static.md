@@ -21,3 +21,13 @@
 - Ink source: `repos/ink/src/components/Static.tsx`
 - Ink renderer: `repos/ink/src/render-node-to-output.ts` (`internal_static` branch)
 - Brain note: `brain/renderer/yoga-vs-dom-indices.md`
+
+## Review findings (2026-05-15)
+
+Quality review confirmed `<Static>` is the **single highest-leverage missing feature** in vue-ink. Two additional pieces of context the original scope undersells:
+
+- **The scaffolding is missing, not just the component.** Today vue-ink's renderer has no `skipStaticElements` flag, no `staticNode` field on the root, no `onStaticChange` / `onImmediateRender` hooks. The component's contract is small (~60 lines in `repos/ink/src/components/Static.tsx`), but the **renderer side** is ~30 lines across `repos/ink/src/reconciler.ts` (commit boundary), `repos/ink/src/output.ts` (separate static buffer), and `repos/ink/src/log-update.ts` (write-once-above semantics). Implementation must touch `packages/renderer/src/render.ts` (paint job + `fullStaticOutput` field) AND `packages/core/src/render-node-to-output.ts` (`skipStaticElements` flag), not just `@vue-ink/components`.
+- **Strategic value is "half of ink's use cases".** Tap-style test reporters, Gatsby-style scrollback logs, any "log + spinner/progress bar" CLI shape. The brain-note workaround (`useStdout().write()`) collapses the moment layout reflow or terminal resize happens — there's no equivalent of ink's "erase main output, write staticOutput, re-emit main" sequence.
+
+### Sequencing note
+Closely tied to `tickets/p0-foundation/renderer-output-correctness.md` fix 4 (BSU/ESU gating) — both touch the paint-loop wrapping in `render.ts`. Land the correctness fix first so this ticket isn't fighting with a stale paint scaffold.

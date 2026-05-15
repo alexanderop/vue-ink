@@ -124,11 +124,24 @@ optional steps.
 
 ## Mapping to vue-ink
 
-vue-ink uses Vitest + `createCaptureStream` (`packages/vue-ink/test/helpers.ts`)
-to capture every write into `frames`. On top of it, `renderToString`,
-`renderToStringRaw`, `renderReusable`, `flush`, and `createFakeStdin` hide
-the `nextTick` / microtask dance and stdin-mock boilerplate so tests stay
-declarative. The suite reaches 100% coverage across all four packages.
+Two distinct surfaces:
+
+- **Internal** (`packages/vue-ink/test/helpers.ts`) — `createCaptureStream`,
+  `renderToString`, `renderToStringRaw`, `renderReusable`, `flush`,
+  `createFakeStdin`. Vitest-coupled (uses `vi.fn`), used to test vue-ink
+  itself. The suite reaches 100% coverage across all four packages.
+- **Public** (`packages/testing-library/`, published as
+  `@vue-ink/testing-library`) — the ink-testing-library port. Framework
+  agnostic (no vitest dep). API: `render(component)` →
+  `{ lastFrame, frames, rerender, unmount, cleanup, stdin, stdout, stderr,
+  waitUntilFlush }` plus a module-level `cleanup()`. Calls the underlying
+  renderer with `debug: true`, `exitOnCtrlC: false`, `patchConsole: false`,
+  `maxFps: Infinity` so each commit produces one full-frame write.
+  Diverges from ink-testing-library in one place: `waitUntilFlush()` is
+  needed after reactive mutations because Vue commits on `nextTick` rather
+  than React's sync render-on-rerender. The wrapper strips the trailing
+  `\n` the renderer appends in debug mode, so `lastFrame() === 'Hello'`
+  matches the ink readme.
 
 **Rule:** never re-implement these in a test file. If a new test needs a
 variant, add it to `helpers.ts` rather than redefining `renderOnce` /

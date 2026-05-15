@@ -27,3 +27,8 @@ export {
 	useFocusManager,
 	type UseFocusManagerReturn,
 } from './useFocusManager/index.ts';
+export {
+	useAnimation,
+	type UseAnimationOptions,
+	type UseAnimationReturn,
+} from './useAnimation/index.ts';

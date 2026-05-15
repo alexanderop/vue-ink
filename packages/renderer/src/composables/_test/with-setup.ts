@@ -15,7 +15,9 @@ import {
 	STDERR_CONTEXT_KEY,
 	ACCESSIBILITY_CONTEXT_KEY,
 	FOCUS_CONTEXT_KEY,
+	ANIMATION_CONTEXT_KEY,
 	type AccessibilityContext,
+	type AnimationContext,
 	type AppContext,
 	type FocusContext,
 	type StdinContext,
@@ -92,6 +94,7 @@ export type WithSetupContexts = Partial<{
 	stderr: StderrContext;
 	accessibility: AccessibilityContext;
 	focus: FocusContext;
+	animation: AnimationContext;
 }>;
 
 export type WithSetupResult<T> = {
@@ -137,6 +140,7 @@ export const withSetup = <T>(
 	if (contexts.stderr) app.provide(STDERR_CONTEXT_KEY, contexts.stderr);
 	if (contexts.accessibility) app.provide(ACCESSIBILITY_CONTEXT_KEY, contexts.accessibility);
 	if (contexts.focus) app.provide(FOCUS_CONTEXT_KEY, contexts.focus);
+	if (contexts.animation) app.provide(ANIMATION_CONTEXT_KEY, contexts.animation);
 
 	const root: Noop = {};
 	app.mount(root);

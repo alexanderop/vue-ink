@@ -25,3 +25,14 @@ Required for screen-reader-friendly TUIs. When SR mode is on, components should 
 
 ## References
 - Ink source: `repos/ink/src/components/Box.tsx`, `Text.tsx`, `AccessibilityContext.ts`.
+
+## Review findings (2026-05-15)
+
+Quality review surfaced that **adding the props alone does nothing user-visible** — they're the entry point to a larger gap.
+
+- Ink consumes aria props in **a second render path** — `repos/ink/src/render-node-to-output.ts:79-94` walks the same node tree but emits `(busy) role: text` style output, not visual layout. vue-ink has no equivalent; `packages/core/src/render-node-to-output.ts` only has the visual pass.
+- This means even after this ticket lands, `INK_SCREEN_READER=true` produces normal visual output — the props get serialized to `internal_accessibility` but nothing reads them.
+- Practical sequencing: this ticket pairs tightly with `tickets/p6-accessibility/accessibility-screen-reader-mode.md`. Land them together, or land screen-reader-mode + the second render pass first so this ticket has something to feed.
+
+### Box behavior gap (additional scope)
+When SR off, `<Box aria-hidden>` should still affect the visual tree the same way ink handles it: ink returns `null` from the Box component itself (`repos/ink/src/components/Box.tsx:76-78`) only when SR is enabled. Document this branching in the implementation; don't add visual-layer behaviour for aria props.

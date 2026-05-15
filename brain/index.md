@@ -21,10 +21,12 @@
 
 ## Renderer
 
+- [[renderer/how-it-works]] — first-principles mental model; read this first
 - [[renderer/yoga-vs-dom-indices]]
 - [[renderer/nested-text-must-be-virtual]]
 - [[renderer/output-hot-path]]
 - [[renderer/input-pipeline]]
+- [[renderer/static-dedup]] — why `<Static>` dedup happens in the renderer, not the component
 
 ## Composables
 
@@ -33,6 +35,10 @@
 ## Testing
 
 - [[testing/ink-strategy]]
+
+## Porting
+
+- [[porting/from-react-ink]]
 
 ## Other
 

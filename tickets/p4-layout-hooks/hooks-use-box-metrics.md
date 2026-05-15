@@ -16,3 +16,26 @@ Some layouts need to know the computed size/position of an element after layout 
 
 ## References
 - Ink source: `repos/ink/src/hooks/use-box-metrics.ts`, `repos/ink/src/dom.ts` (`addLayoutListener`).
+
+## Review findings (2026-05-15)
+
+Quality review confirmed `useBoxMetrics` is the **higher-priority of the two layout-hook gaps** (the other being `useCursor`). Reasoning:
+
+- **`useBoxMetrics` blocks a wide class of apps**: responsive tables, virtualized lists keyed on row height, anchored popovers, autosize text inputs. Anything that needs measure-then-render.
+- **`useCursor` blocks one class of apps**: IME / inline editing affordances for non-ASCII input (Asian input, emoji search). Important but narrower.
+- Implementation order should be: `useBoxMetrics` first; defer `useCursor` until someone files a real IME issue.
+
+### Output shape (refinement on original scope)
+Mirror VueUse idioms instead of returning a deep-reactive object — see `brain/composables/vueuse-patterns.md`:
+
+```ts
+useBoxMetrics(elRef): {
+  width: ShallowRef<number>;
+  height: ShallowRef<number>;
+  left: ShallowRef<number>;
+  top: ShallowRef<number>;
+  hasMeasured: ShallowRef<boolean>;
+}
+```
+
+Five `ShallowRef`s instead of one `Ref<{...}>`. Destructuring auto-unwraps in templates; per-dim watchers only fire when their dimension actually changes. Matches `useWindowSize`'s shape.

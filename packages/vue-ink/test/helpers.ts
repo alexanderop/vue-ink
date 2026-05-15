@@ -4,6 +4,7 @@ import { defineComponent, h, nextTick, type Component } from 'vue';
 import stripAnsi from 'strip-ansi';
 import { vi } from 'vitest';
 import { render } from '../src/index.ts';
+import { _flushActiveInstances } from '@vue-ink/renderer';
 
 export const createCaptureStream = (
 	columns = 80,
@@ -28,9 +29,19 @@ export const createCaptureStream = (
 	return stream as unknown as NodeJS.WriteStream & { frames: string[] };
 };
 
-export const flush = async (): Promise<void> => {
+// Drain Vue's scheduler only — does not wait for any throttled paint to land.
+// Useful inside throttle tests where the test itself drives the fake timer
+// and wants to inspect the pre-trailing-edge state.
+export const flushVueOnly = async (): Promise<void> => {
 	await nextTick();
 	await new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
+};
+
+export const flush = async (): Promise<void> => {
+	await flushVueOnly();
+	// Drain any throttled paints that the renderer queued behind the maxFps
+	// window so tests inspect frames that have actually landed on stdout.
+	await _flushActiveInstances();
 };
 
 export type RenderToStringOptions = {

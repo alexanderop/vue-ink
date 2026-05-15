@@ -27,6 +27,7 @@
 		"@types/node": "catalog:",
 		"@vitest/coverage-v8": "catalog:",
 		"@vue-ink/core": "workspace:*",
+		"@vue-ink/testing-library": "workspace:*",
 		"@vue/compiler-sfc": "^3.5.13",
 		"chalk": "^5.6.2",
 		"fast-check": "^4.8.0",

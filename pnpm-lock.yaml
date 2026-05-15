@@ -365,6 +365,31 @@ importers:
         specifier: 'catalog:'
         version: 2.1.9(@types/node@22.19.19)(lightningcss@1.32.0)
 
+  packages/testing-library:
+    dependencies:
+      '@vue-ink/renderer':
+        specifier: workspace:*
+        version: link:../renderer
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.34(typescript@5.9.3)
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      '@vue-ink/components':
+        specifier: workspace:*
+        version: link:../components
+      strip-ansi:
+        specifier: ^7.1.0
+        version: 7.2.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 2.1.9(@types/node@22.19.19)(lightningcss@1.32.0)
+
   packages/vue-ink:
     dependencies:
       '@vue-ink/components':
@@ -383,6 +408,9 @@ importers:
       '@vue-ink/core':
         specifier: workspace:*
         version: link:../core
+      '@vue-ink/testing-library':
+        specifier: workspace:*
+        version: link:../testing-library
       '@vue/compiler-sfc':
         specifier: ^3.5.13
         version: 3.5.34

@@ -16,6 +16,8 @@ Visible-parity wins + one silent correctness fix. Release theme: *"Vue-Ink now r
 - `styles-borders.md` — **start here**, biggest single ticket
 - `styles-background-color.md` — pairs with borders in the same render pass
 - `renderer-sanitize-ansi.md` — silent correctness bug, cheap to fix
+- `renderer-output-correctness.md` — four ≤5-line silent-correctness bugs (padding, overflow clip, yoga leak, BSU gating) surfaced by the 2026-05-15 review
+- `release-build-artifacts.md` — packages currently can't be consumed off-workspace; ship real `dist/` + `.d.ts` + exports map
 - `components-newline.md` · `components-spacer.md` · `components-transform.md` — half-day quick wins
 
 ### `p1-input/` — Strategic unlock: real interactivity
@@ -24,6 +26,7 @@ Without a real keypress parser, vue-ink is a renderer, not a TUI framework. Pull
 - `input-keypress-parser.md`
 - `input-bracketed-paste.md`
 - `input-kitty-keyboard.md`
+- `input-regression-fixes.md` — five small ink-divergence fixes (20ms esc-flush, setEncoding, ref/unref, paste→input fallback, Esc clears focus)
 
 ### `p2-plumbing-and-hooks/` — Renderer hardening + cheap hook surface
 Infra-flavored but each ticket is small. Bundle them. Several P3+ tickets depend on this tier.
@@ -31,6 +34,7 @@ Infra-flavored but each ticket is small. Bundle them. Several P3+ tickets depend
 Renderer: `instances-registry`, `interactive-detection`, `stderr-option`, `patch-console`, `synchronized-output`, `on-render-callback`, `wait-until-render-flush`.
 Hooks: `use-stdout`, `use-stderr`, `use-window-size`, `use-is-screen-reader-enabled`.
 Styles: `aspect-ratio`, `align-content`, `position` (gates `<Static>`).
+Testing: `testing-pty-harness.md` — consolidate fake-stdin/fakeKey helpers and add a `term(fixture)` PTY runner with ~10 minimum-viable fixtures.
 
 ### `p3-focus-and-paste/` — Build real forms/menus
 Depends on `p1-input/`. Release theme: *"Build a multi-pane TUI in Vue."*
@@ -38,6 +42,7 @@ Depends on `p1-input/`. Release theme: *"Build a multi-pane TUI in Vue."*
 - `hooks-use-focus.md`
 - `hooks-use-focus-manager.md`
 - `hooks-use-paste.md`
+- `composables-semantics-fixes.md` — lazy non-TTY throw + `disable/enableFocus` semantics + wire `isFocused` through `isFocusEnabled`
 
 ### `p4-layout-hooks/` — Yoga-aware composables
 - `renderer-measure-element.md`

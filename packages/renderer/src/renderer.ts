@@ -69,6 +69,11 @@ const setProp = (node: DOMElement, key: string, value: unknown): void => {
 		return;
 	}
 
+	if (key === 'internal_static') {
+		node.internal_static = Boolean(value);
+		return;
+	}
+
 	// Vue still passes `key` and `ref` to patchProp for components with
 	// runtime-rendered slots; they are framework metadata and must not reach
 	// the host DOM. Branch coverage only exercises one side at a time.

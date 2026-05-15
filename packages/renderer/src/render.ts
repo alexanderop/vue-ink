@@ -4,7 +4,14 @@ import Yoga from 'yoga-layout';
 import ansiEscapes from 'ansi-escapes';
 import { h, nextTick as vueNextTick, ref, shallowRef, type Component } from 'vue';
 import { createApp } from './renderer.ts';
-import { createNode, Output, renderNodeToOutput, type DOMElement } from '@vue-ink/core';
+import {
+	createNode,
+	Output,
+	renderNodeToOutput,
+	renderStaticSubtrees,
+	hasStaticContent,
+	type DOMElement,
+} from '@vue-ink/core';
 import { createInputManager } from './input.ts';
 import { createFocusManager } from './focus-context.ts';
 import { BSU, ESU } from './write-synchronized.ts';
@@ -15,7 +22,9 @@ import {
 	STDERR_CONTEXT_KEY,
 	ACCESSIBILITY_CONTEXT_KEY,
 	FOCUS_CONTEXT_KEY,
+	ANIMATION_CONTEXT_KEY,
 } from './context.ts';
+import { createAnimationScheduler } from './animation-scheduler.ts';
 import {
 	enableKittyKeyboard,
 	disableKittyKeyboard,
@@ -55,6 +64,13 @@ export type RenderOptions = {
 	 * callback is logged to stderr and never propagates to the renderer.
 	 */
 	onRender?: (metrics: RenderMetrics) => void;
+	/**
+	 * Cap on the number of paints per second. Defaults to 30. Multiple state
+	 * updates inside the throttle window collapse into a single trailing-edge
+	 * frame so terminals over SSH stay responsive. Pass `Infinity` to render
+	 * synchronously on every commit (mostly for tests). Must be > 0.
+	 */
+	maxFps?: number;
 };
 
 export type RenderMetrics = {
@@ -86,6 +102,20 @@ export type Instance = {
 // One live renderer per stdout: reusing the same stream creates two renderers
 // competing for the same lines. Mirrors ink's `instances.ts`.
 const instances = new WeakMap<NodeJS.WriteStream, Instance>();
+
+// Auxiliary registry kept alongside `instances` so test helpers can await
+// pending paints across *all* live renderers. WeakMap isn't iterable; this
+// is — entries are added on create, removed on unmount.
+const activeInstances = new Set<Instance>();
+
+// Test-only: await every active instance's next paint. Tests call this from
+// the standalone `flush()` helper which doesn't carry an instance reference.
+/* v8 ignore start — exercised only via test helpers */
+export const _flushActiveInstances = async (): Promise<void> => {
+	if (activeInstances.size === 0) return;
+	await Promise.all([...activeInstances].map((i) => i.waitUntilRenderFlush()));
+};
+/* v8 ignore stop */
 
 type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug' | 'trace';
 const CONSOLE_METHODS: readonly ConsoleMethod[] = ['log', 'info', 'warn', 'error', 'debug', 'trace'];
@@ -139,17 +169,24 @@ const noop = (): void => {};
 const renderTree = (
 	rootNode: DOMElement,
 	terminalWidth: number,
-): { output: string; height: number } => {
+): { output: string; height: number; staticOutput: string } => {
 	rootNode.yogaNode!.setWidth(terminalWidth);
 	rootNode.yogaNode!.calculateLayout(undefined, undefined, Yoga.DIRECTION_LTR);
+
+	const hasStatic = hasStaticContent(rootNode);
 
 	const output = new Output({
 		width: rootNode.yogaNode!.getComputedWidth(),
 		height: rootNode.yogaNode!.getComputedHeight(),
 	});
-	renderNodeToOutput(rootNode, output, {});
+	renderNodeToOutput(rootNode, output, { skipStaticElements: hasStatic });
 	const { output: text, height } = output.get();
-	return { output: text, height };
+
+	const staticOutput = hasStatic
+		? renderStaticSubtrees(rootNode, terminalWidth)
+		: '';
+
+	return { output: text, height, staticOutput };
 };
 
 const render = (component: Component, options: RenderOptions = {}): Instance => {
@@ -162,6 +199,15 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	const writeStream = stdout as NodeJS.WriteStream;
 	const interactive = options.interactive ?? (isTTY && !isCiEnv());
 	const useTTYFrame = interactive && !debug;
+
+	const maxFps = options.maxFps ?? 30;
+	if (!(maxFps > 0)) {
+		throw new Error(`vue-ink: maxFps must be > 0, got ${maxFps}.`);
+	}
+	// `debug` writes every frame verbatim so the test surface sees each commit;
+	// throttling there would coalesce frames the test wants to count.
+	const renderThrottleMs =
+		debug || maxFps === Number.POSITIVE_INFINITY ? 0 : Math.max(1, Math.ceil(1000 / maxFps));
 
 	const existing = instances.get(writeStream);
 	if (existing) {
@@ -182,6 +228,13 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	let lastOutput = '';
 	let lastLineCount = 0;
 	let frameCounter = 0;
+	// Static is append-only scrollback. The Static component re-renders the
+	// full item list each frame; we detect which suffix is new by comparing
+	// against the previously emitted text. `lastStaticOutput` is the diff
+	// anchor used in all modes; `fullStaticOutput` accumulates the running
+	// scrollback only in debug mode, which re-emits the whole frame.
+	let lastStaticOutput = '';
+	let fullStaticOutput = '';
 	// The Promise constructor runs its executor synchronously, so by the time
 	// these are read elsewhere they're always the real resolve/reject — the
 	// no-op assertions here just satisfy the type checker before assignment.
@@ -227,6 +280,12 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	);
 	app.provide(FOCUS_CONTEXT_KEY, focusContext);
 
+	const animationScheduler = createAnimationScheduler();
+	app.provide(ANIMATION_CONTEXT_KEY, {
+		renderThrottleMs,
+		subscribe: animationScheduler.subscribe,
+	});
+
 	const eraseCurrentFrame = (): void => {
 		if (!useTTYFrame || lastLineCount === 0) return;
 		writeStream.write(ansiEscapes.eraseLines(lastLineCount + 1));
@@ -239,7 +298,65 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	const writeAboveFrame = (target: NodeJS.WriteStream, data: string): void => {
 		eraseCurrentFrame();
 		target.write(data);
-		if (!unmounted) doRender();
+		if (!unmounted) renderImmediate();
+	};
+
+	let trailingTimer: ReturnType<typeof setTimeout> | undefined;
+	let lastRenderAt = 0;
+	let hasPendingRender = false;
+	const commitWaiters: Array<() => void> = [];
+
+	const drainCommitWaiters = (): void => {
+		if (commitWaiters.length === 0) return;
+		const waiters = commitWaiters.splice(0);
+		for (const resolve of waiters) resolve();
+	};
+
+	const clearTrailingTimer = (): void => {
+		if (trailingTimer === undefined) return;
+		clearTimeout(trailingTimer);
+		trailingTimer = undefined;
+	};
+
+	// Shared paint-now core: clear any trailing timer, drop the pending flag,
+	// stamp the window, and paint. Every commit path funnels through here so
+	// the three pieces of state can't drift.
+	const commitNow = (): void => {
+		clearTrailingTimer();
+		hasPendingRender = false;
+		lastRenderAt = Date.now();
+		doRender();
+	};
+
+	// Sync entry point — flushes any pending throttled work and paints now.
+	// Used on mount, resize, and unmount where we cannot drop the frame.
+	const renderImmediate = commitNow;
+
+	const scheduleTrailingRender = (delay: number): void => {
+		if (trailingTimer !== undefined) return;
+		trailingTimer = setTimeout(() => {
+			trailingTimer = undefined;
+			if (unmounted || !hasPendingRender) return;
+			commitNow();
+		}, Math.max(0, delay));
+	};
+
+	// Throttled entry point — called from scheduler/post-flush hooks. Honors
+	// the leading-edge + trailing-edge contract: the first call in a window
+	// paints immediately; subsequent calls coalesce into one trailing paint.
+	const requestRender = (): void => {
+		if (unmounted) return;
+		if (renderThrottleMs === 0) {
+			commitNow();
+			return;
+		}
+		const elapsed = Date.now() - lastRenderAt;
+		if (elapsed >= renderThrottleMs && trailingTimer === undefined) {
+			commitNow();
+			return;
+		}
+		hasPendingRender = true;
+		scheduleTrailingRender(renderThrottleMs - elapsed);
 	};
 
 	app.provide(STDOUT_CONTEXT_KEY, {
@@ -275,15 +392,35 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	const doRender = (): void => {
 		if (unmounted) return;
 		const startedAt = hasOnRender ? performance.now() : 0;
-		const { output: text } = renderTree(rootNode, getTerminalWidth());
+		const { output: text, staticOutput } = renderTree(rootNode, getTerminalWidth());
+
+		// The new static suffix: items present this paint that weren't in the
+		// previous static snapshot. Append-only assumption — if the user
+		// rewrites the array, the diff falls back to "emit everything new"
+		// which is still safe, just verbose.
+		let newStatic = '';
+		if (staticOutput !== lastStaticOutput) {
+			newStatic = staticOutput.startsWith(lastStaticOutput)
+				? staticOutput.slice(lastStaticOutput.length)
+				: staticOutput;
+			lastStaticOutput = staticOutput;
+		}
+		// Each emitted static chunk gets a trailing `\n` so the live frame
+		// below it starts on a fresh line.
+		const newStaticFrame = newStatic.length > 0 ? `${newStatic}\n` : '';
 
 		if (debug) {
-			writeStream.write(`${text}\n`);
+			if (newStaticFrame.length > 0) fullStaticOutput += newStaticFrame;
+			writeStream.write(`${fullStaticOutput}${text}\n`);
 			emitRenderMetrics(text, text.length === 0 ? 0 : text.split('\n').length, startedAt);
+			drainCommitWaiters();
 			return;
 		}
 
-		if (text === lastOutput) return;
+		if (text === lastOutput && newStaticFrame.length === 0) {
+			drainCommitWaiters();
+			return;
+		}
 
 		if (useTTYFrame) {
 			if (!cursorHidden) {
@@ -291,7 +428,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 				cursorHidden = true;
 			}
 			const erase = lastLineCount > 0 ? ansiEscapes.eraseLines(lastLineCount + 1) : '';
-			writeStream.write(`${BSU}${erase}${text}\n${ESU}`);
+			writeStream.write(`${BSU}${erase}${newStaticFrame}${text}\n${ESU}`);
 		}
 		// Non-interactive: buffer only — the final frame is flushed in unmount.
 
@@ -299,6 +436,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		lastOutput = text;
 		lastLineCount = lineCount;
 		emitRenderMetrics(text, lineCount, startedAt);
+		drainCommitWaiters();
 	};
 
 	const emitRenderMetrics = (text: string, lineCount: number, startedAt: number): void => {
@@ -317,7 +455,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		}
 	};
 
-	rootNode.onRender = doRender;
+	rootNode.onRender = requestRender;
 	rootNode.onComputeLayout = () => {
 		rootNode.yogaNode!.setWidth(getTerminalWidth());
 	};
@@ -337,7 +475,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		// and the new layout may differ even from identical state.
 		lastOutput = '';
 		lastLineCount = 0;
-		doRender();
+		renderImmediate();
 	};
 
 	const onSignal = (): void => {
@@ -351,6 +489,11 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	unmount = (): void => {
 		if (unmounted) return;
+		// Flush any pending throttled render so the user's last state lands
+		// before we tear down. Read `unmounted` after this — we still want the
+		// trailing paint, but no new ones after.
+		if (hasPendingRender) commitNow();
+		else clearTrailingTimer();
 		unmounted = true;
 		// Restore native console first so any teardown-time log goes straight
 		// to the real stream, not back through our (about-to-be-torn-down) frame
@@ -373,6 +516,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			beforeExitRegistered = false;
 		}
 		destroyFocusManager();
+		animationScheduler.destroy();
 		inputManager.destroy();
 		app.unmount();
 		if (kittyProtocolEnabled) {
@@ -388,6 +532,8 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			rootNode.yogaNode = undefined;
 		}
 		instances.delete(writeStream);
+		activeInstances.delete(instance);
+		drainCommitWaiters();
 		exitResolve();
 	};
 
@@ -415,7 +561,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	// Mount-time mutations queue a post-flush render; flush it synchronously
 	// here so the first frame is written before render() returns.
-	doRender();
+	renderImmediate();
 
 	const rerender = (newComponent: Component): void => {
 		currentComponent.value = newComponent;
@@ -423,8 +569,14 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	const waitUntilRenderFlush = async (): Promise<void> => {
 		// Let Vue's scheduler drain so any pending state changes commit and
-		// `doRender` runs synchronously inside its post-flush callback.
+		// schedule a paint (immediate or trailing).
 		await vueNextTick();
+		// If a paint is pending behind the throttle, wait for it to land.
+		if (hasPendingRender || trailingTimer !== undefined) {
+			await new Promise<void>((resolve) => {
+				commitWaiters.push(resolve);
+			});
+		}
 		// Yield once more so the write reaches the stream before we resolve.
 		await new Promise<void>((resolve) => {
 			process.nextTick(resolve);
@@ -445,6 +597,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		clear: eraseCurrentFrame,
 	};
 	instances.set(writeStream, instance);
+	activeInstances.add(instance);
 	return instance;
 };
 

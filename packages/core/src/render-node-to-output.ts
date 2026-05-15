@@ -18,9 +18,22 @@ const renderNodeToOutput = (
 		offsetX?: number;
 		offsetY?: number;
 		transformers?: OutputTransformer[];
+		/**
+		 * When true, subtrees marked `internal_static` are skipped during the
+		 * walk. The renderer paints those separately above the live frame so
+		 * they survive as scrollback history.
+		 */
+		skipStaticElements?: boolean;
 	},
 ): void => {
-	const { offsetX = 0, offsetY = 0, transformers = [] } = options;
+	const {
+		offsetX = 0,
+		offsetY = 0,
+		transformers = [],
+		skipStaticElements = false,
+	} = options;
+
+	if (skipStaticElements && node.internal_static) return;
 
 	const { yogaNode } = node;
 	if (!yogaNode) return;
@@ -77,6 +90,7 @@ const renderNodeToOutput = (
 				offsetX: x,
 				offsetY: y,
 				transformers: newTransformers,
+				skipStaticElements,
 			});
 		}
 		if (clipped) output.unclip();

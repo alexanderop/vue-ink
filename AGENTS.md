@@ -6,6 +6,12 @@ Source-of-truth code for libraries we depend on. Treat as **read-only reference 
 - `repos/ink/` — https://github.com/vadimdemedes/ink.git @ master (squashed)
 - `repos/vueuse/` — https://github.com/vueuse/vueuse.git @ main (squashed)
 
+## Learning references
+
+Minimal, zero-dependency demos that strip the framework down to its essence. Good for onboarding or sanity-checking the mental model. Pair with `brain/renderer/how-it-works.md`.
+
+- `learning/from-scratch.ts` — vue-ink in ~80 lines of plain Node + TS. Demonstrates ANSI escapes, the frame-overwrite trick, a toy layout step, and raw-mode stdin. Run with `pnpm tsx learning/from-scratch.ts`.
+
 # Brain
 
 The `brain/` directory is an Obsidian vault — persistent memory across sessions.

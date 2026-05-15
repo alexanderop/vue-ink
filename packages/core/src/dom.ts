@@ -22,6 +22,11 @@ export type DOMElement = {
 	attributes: Record<string, DOMNodeAttribute>;
 	childNodes: DOMNode[];
 	internal_transform?: OutputTransformer;
+	/**
+	 * Marks a subtree as scrollback-safe history (rendered above the live
+	 * frame and never repainted). Set by the {@link Static} component.
+	 */
+	internal_static?: boolean;
 	onComputeLayout?: () => void;
 	onRender?: () => void;
 } & InkNode;

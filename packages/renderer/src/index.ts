@@ -1,5 +1,6 @@
 export {
 	default as render,
+	_flushActiveInstances,
 	type RenderOptions,
 	type Instance,
 	type RenderMetrics,
@@ -16,6 +17,7 @@ export {
 	usePaste,
 	useFocus,
 	useFocusManager,
+	useAnimation,
 	type InputHandler,
 	type UseInputOptions,
 	type UseStdinReturn,
@@ -25,6 +27,8 @@ export {
 	type UseFocusReturn,
 	type UseFocusManagerReturn,
 	type UseWindowSizeReturn,
+	type UseAnimationOptions,
+	type UseAnimationReturn,
 	type Key,
 } from './composables/index.ts';
 export {
