@@ -53,7 +53,7 @@ describe('interactive mode detection', () => {
 		instance.unmount();
 	});
 
-	it('does not register a resize listener in non-interactive mode', async () => {
+	it('registers a resize listener even in non-interactive mode and detaches on unmount', async () => {
 		const stdout = createCaptureStream(10);
 		const App = defineComponent({
 			setup: () => () => h(Text, null, () => 'x'),
@@ -62,8 +62,13 @@ describe('interactive mode detection', () => {
 		const instance = render(App, { stdout });
 		await flush();
 
-		expect(stdout.listenerCount('resize')).toBe(0);
+		// The renderer attaches a resize listener regardless of interactivity
+		// so composables (`useBoxMetrics`) get a recomputed layout when tests
+		// or non-TTY consumers fire `resize` manually. Real non-TTY streams
+		// never emit `resize`, so this listener is dormant in production.
+		expect(stdout.listenerCount('resize')).toBe(1);
 
 		instance.unmount();
+		expect(stdout.listenerCount('resize')).toBe(0);
 	});
 });

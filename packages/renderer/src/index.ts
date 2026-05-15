@@ -18,6 +18,8 @@ export {
 	useFocus,
 	useFocusManager,
 	useAnimation,
+	useBoxMetrics,
+	useCursor,
 	type InputHandler,
 	type UseInputOptions,
 	type UseStdinReturn,
@@ -29,6 +31,10 @@ export {
 	type UseWindowSizeReturn,
 	type UseAnimationOptions,
 	type UseAnimationReturn,
+	type BoxMetricsTarget,
+	type UseBoxMetricsReturn,
+	type CursorPosition,
+	type UseCursorReturn,
 	type Key,
 } from './composables/index.ts';
 export {

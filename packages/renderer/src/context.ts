@@ -1,6 +1,15 @@
 import type { InjectionKey, Ref } from 'vue';
 import type { EventEmitter } from 'node:events';
 
+export type CursorPosition = {
+	x: number;
+	y: number;
+};
+
+export type CursorContext = {
+	setCursorPosition: (position: CursorPosition | undefined) => void;
+};
+
 export type AppContext = {
 	exit: (error?: Error) => void;
 	waitUntilRenderFlush: () => Promise<void>;
@@ -74,3 +83,5 @@ export const ACCESSIBILITY_CONTEXT_KEY: InjectionKey<AccessibilityContext> =
 export const FOCUS_CONTEXT_KEY: InjectionKey<FocusContext> = Symbol('vue-ink.focus');
 export const ANIMATION_CONTEXT_KEY: InjectionKey<AnimationContext> =
 	Symbol('vue-ink.animation');
+export const CURSOR_CONTEXT_KEY: InjectionKey<CursorContext> =
+	Symbol('vue-ink.cursor');

@@ -122,6 +122,10 @@ const applyPositionStyles = (node: YogaNode, style: Styles): void => {
 		const value = style[key];
 		if (typeof value === 'string') node.setPositionPercent(edge, Number.parseFloat(value));
 		else if (typeof value === 'number') node.setPosition(edge, value);
+		// `undefined` (key explicitly cleared by the renderer when a prop
+		// disappears on rerender) resets the offset so Yoga doesn't leak the
+		// previous value across renders.
+		else node.setPosition(edge, undefined);
 	}
 };
 
@@ -254,8 +258,12 @@ const applyDimensionStyles = (node: YogaNode, style: Styles): void => {
 		else node.setMaxHeight(style.maxHeight);
 	}
 
-	if ('aspectRatio' in style && typeof style.aspectRatio === 'number') {
-		node.setAspectRatio(style.aspectRatio);
+	if ('aspectRatio' in style) {
+		// `undefined` resets the constraint so a rerender that drops the prop
+		// stops constraining the node.
+		node.setAspectRatio(
+			typeof style.aspectRatio === 'number' ? style.aspectRatio : Number.NaN,
+		);
 	}
 };
 

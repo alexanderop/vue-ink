@@ -6,8 +6,10 @@ import { h, nextTick as vueNextTick, ref, shallowRef, type Component } from 'vue
 import { createApp } from './renderer.ts';
 import {
 	createNode,
+	emitLayoutListeners,
 	Output,
 	renderNodeToOutput,
+	renderNodeToScreenReaderOutput,
 	renderStaticSubtrees,
 	hasStaticContent,
 	type DOMElement,
@@ -23,11 +25,15 @@ import {
 	ACCESSIBILITY_CONTEXT_KEY,
 	FOCUS_CONTEXT_KEY,
 	ANIMATION_CONTEXT_KEY,
+	CURSOR_CONTEXT_KEY,
+	type CursorPosition,
 } from './context.ts';
 import { createAnimationScheduler } from './animation-scheduler.ts';
 import {
 	enableKittyKeyboard,
 	disableKittyKeyboard,
+	hasCompleteKittyQueryResponse,
+	stripKittyQueryResponses,
 	type KittyKeyboardOptions,
 	type KittyFlagName,
 } from './kitty-keyboard.ts';
@@ -71,6 +77,22 @@ export type RenderOptions = {
 	 * synchronously on every commit (mostly for tests). Must be > 0.
 	 */
 	maxFps?: number;
+	/**
+	 * Render into the terminal's alternate screen buffer (CSI ?1049h on mount,
+	 * CSI ?1049l on unmount). Same mechanism vim / htop / less use to avoid
+	 * polluting the user's scrollback. Only honored when interactive mode is on
+	 * AND stdout is a TTY — non-interactive streams (CI, pipes) ignore the
+	 * option so log capture is unaffected. Default: `false`.
+	 */
+	alternateScreen?: boolean;
+	/**
+	 * When enabled, the renderer emits a line-level diff between the previous
+	 * and next paint instead of erasing and rewriting the entire frame. Unchanged
+	 * lines are skipped with `cursorNextLine`; shrinking output erases the
+	 * dropped tail with `eraseLines`. Useful over high-latency links. Default:
+	 * `false`.
+	 */
+	incrementalRendering?: boolean;
 };
 
 export type RenderMetrics = {
@@ -169,11 +191,25 @@ const noop = (): void => {};
 const renderTree = (
 	rootNode: DOMElement,
 	terminalWidth: number,
+	isScreenReaderEnabled: boolean,
 ): { output: string; height: number; staticOutput: string } => {
 	rootNode.yogaNode!.setWidth(terminalWidth);
 	rootNode.yogaNode!.calculateLayout(undefined, undefined, Yoga.DIRECTION_LTR);
 
 	const hasStatic = hasStaticContent(rootNode);
+
+	if (isScreenReaderEnabled) {
+		// Screen-reader mode collapses the 2D layout into a 1D string by
+		// walking the DOM directly. Yoga still ran above so `display: none`
+		// nodes resolve correctly. `<Static>` subtrees aren't currently
+		// announced separately — they participate in the same screen-reader
+		// walk as the live frame.
+		const text = renderNodeToScreenReaderOutput(rootNode, {
+			skipStaticElements: false,
+		});
+		const height = text === '' ? 0 : text.split('\n').length;
+		return { output: text, height, staticOutput: '' };
+	}
 
 	const output = new Output({
 		width: rootNode.yogaNode!.getComputedWidth(),
@@ -199,6 +235,11 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	const writeStream = stdout as NodeJS.WriteStream;
 	const interactive = options.interactive ?? (isTTY && !isCiEnv());
 	const useTTYFrame = interactive && !debug;
+	// Alt-screen is gated on both interactive AND isTTY: non-interactive streams
+	// (CI, pipes) ignore the option so captured logs stay flat, and a non-TTY
+	// stream can't reliably switch buffers anyway. Mirrors ink's
+	// `resolveAlternateScreenOption`.
+	const useAlternateScreen = Boolean(options.alternateScreen) && interactive && isTTY;
 
 	const maxFps = options.maxFps ?? 30;
 	if (!(maxFps > 0)) {
@@ -227,7 +268,11 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	let lastOutput = '';
 	let lastLineCount = 0;
+	let lastOutputLines: string[] = [];
 	let frameCounter = 0;
+	let currentCursorPosition: CursorPosition | undefined;
+	let lastCursorPosition: CursorPosition | undefined;
+	const incrementalRendering = options.incrementalRendering ?? false;
 	// Static is append-only scrollback. The Static component re-renders the
 	// full item list each frame; we detect which suffix is new by comparing
 	// against the previously emitted text. `lastStaticOutput` is the diff
@@ -284,6 +329,14 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	app.provide(ANIMATION_CONTEXT_KEY, {
 		renderThrottleMs,
 		subscribe: animationScheduler.subscribe,
+	});
+
+	app.provide(CURSOR_CONTEXT_KEY, {
+		setCursorPosition: (position: CursorPosition | undefined) => {
+			currentCursorPosition = position
+				? { x: position.x, y: position.y }
+				: undefined;
+		},
 	});
 
 	const eraseCurrentFrame = (): void => {
@@ -389,10 +442,52 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	const hasOnRender = typeof options.onRender === 'function';
 
+	const buildCursorSuffix = (
+		visibleLineCount: number,
+		position: CursorPosition | undefined,
+	): string => {
+		if (!position) return '';
+		const moveUp = visibleLineCount - position.y;
+		return (
+			(moveUp > 0 ? ansiEscapes.cursorUp(moveUp) : '') +
+			ansiEscapes.cursorTo(position.x) +
+			ansiEscapes.cursorShow
+		);
+	};
+
+	// Before any erase or rewrite, if the last paint left the cursor visible
+	// inside the frame, hide it and return to the bottom so erase math (which
+	// assumes the cursor sits below the frame) works correctly.
+	const buildReturnToBottom = (
+		previousLineCount: number,
+		previousPosition: CursorPosition | undefined,
+	): string => {
+		if (!previousPosition) return '';
+		const down = previousLineCount - 1 - previousPosition.y;
+		return (
+			ansiEscapes.cursorHide +
+			(down > 0 ? ansiEscapes.cursorDown(down) : '') +
+			ansiEscapes.cursorTo(0)
+		);
+	};
+
 	const doRender = (): void => {
 		if (unmounted) return;
 		const startedAt = hasOnRender ? performance.now() : 0;
-		const { output: text, staticOutput } = renderTree(rootNode, getTerminalWidth());
+		const { output: text, staticOutput } = renderTree(
+			rootNode,
+			getTerminalWidth(),
+			isScreenReaderEnabled.value,
+		);
+		// Layout is committed at this point. Notify composables that depend on
+		// Yoga-computed metrics (`useBoxMetrics`) so they update their refs in
+		// time for Vue to coalesce any resulting re-render into the next paint.
+		emitLayoutListeners(rootNode);
+
+		// Snapshot cursor state for this paint — the consumer may mutate it
+		// during the next render cycle but this paint's escapes must reflect
+		// what was published before commit.
+		const cursorPosition = currentCursorPosition;
 
 		// The new static suffix: items present this paint that weren't in the
 		// previous static snapshot. Append-only assumption — if the user
@@ -417,26 +512,104 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			return;
 		}
 
-		if (text === lastOutput && newStaticFrame.length === 0) {
+		const cursorChanged =
+			cursorPosition?.x !== lastCursorPosition?.x ||
+			cursorPosition?.y !== lastCursorPosition?.y;
+		// Re-emit if anything visible to the user changed — frame text, static
+		// suffix, or just the cursor position/visibility.
+		if (text === lastOutput && newStaticFrame.length === 0 && !cursorChanged) {
 			drainCommitWaiters();
 			return;
 		}
+
+		const lineCount = text.length === 0 ? 0 : text.split('\n').length;
+		const nextLines = text.length === 0 ? [] : text.split('\n');
 
 		if (useTTYFrame) {
 			if (!cursorHidden) {
 				writeStream.write(ansiEscapes.cursorHide);
 				cursorHidden = true;
 			}
-			const erase = lastLineCount > 0 ? ansiEscapes.eraseLines(lastLineCount + 1) : '';
-			writeStream.write(`${BSU}${erase}${newStaticFrame}${text}\n${ESU}`);
+			const cursorSuffix = buildCursorSuffix(lineCount, cursorPosition);
+			// `returnPrefix` is non-empty only when the previous paint left the
+			// cursor inside the frame; it hides the cursor and walks back down to
+			// the bottom-left so the erase/diff math below is correct.
+			const returnPrefix = buildReturnToBottom(lastLineCount, lastCursorPosition);
+
+			if (
+				incrementalRendering &&
+				lastOutput.length > 0 &&
+				text.length > 0 &&
+				newStaticFrame.length === 0
+			) {
+				writeStream.write(
+					`${BSU}${returnPrefix}${buildIncrementalDiff(lastOutputLines, nextLines)}${cursorSuffix}${ESU}`,
+				);
+			} else {
+				const erase = lastLineCount > 0 ? ansiEscapes.eraseLines(lastLineCount + 1) : '';
+				writeStream.write(
+					`${BSU}${returnPrefix}${erase}${newStaticFrame}${text}\n${cursorSuffix}${ESU}`,
+				);
+			}
 		}
 		// Non-interactive: buffer only — the final frame is flushed in unmount.
 
-		const lineCount = text.length === 0 ? 0 : text.split('\n').length;
 		lastOutput = text;
 		lastLineCount = lineCount;
+		lastOutputLines = nextLines;
+		lastCursorPosition = cursorPosition
+			? { x: cursorPosition.x, y: cursorPosition.y }
+			: undefined;
 		emitRenderMetrics(text, lineCount, startedAt);
 		drainCommitWaiters();
+	};
+
+	// Line-level diff: rewrite only the lines that changed, skip unchanged
+	// lines with `cursorNextLine`, and erase any tail dropped by shrinking
+	// output. The previous frame is assumed to end with `\n` (the cursor sits
+	// on the line after `previousLines.length - 1`).
+	const buildIncrementalDiff = (
+		previousLines: string[],
+		nextLines: string[],
+	): string => {
+		const prevVisible = previousLines.length;
+		const nextVisible = nextLines.length;
+		const buf: string[] = [];
+
+		// Move cursor up to the top of the previous frame. After the previous
+		// `${text}\n` the cursor is on the line after `prevVisible - 1` (i.e. at
+		// row `prevVisible`), so we need to go up `prevVisible` lines to reach
+		// row 0.
+		if (prevVisible > 0) buf.push(ansiEscapes.cursorUp(prevVisible));
+
+		const sharedLines = Math.min(prevVisible, nextVisible);
+		for (let i = 0; i < sharedLines; i += 1) {
+			if (nextLines[i] === previousLines[i]) {
+				buf.push(ansiEscapes.cursorNextLine);
+				continue;
+			}
+			buf.push(ansiEscapes.cursorTo(0));
+			buf.push(nextLines[i]!);
+			buf.push(ansiEscapes.eraseEndLine);
+			buf.push('\n');
+		}
+
+		// New lines beyond the previous frame: write them with a trailing
+		// newline so subsequent paints start at the line below.
+		for (let i = sharedLines; i < nextVisible; i += 1) {
+			buf.push(ansiEscapes.cursorTo(0));
+			buf.push(nextLines[i]!);
+			buf.push(ansiEscapes.eraseEndLine);
+			buf.push('\n');
+		}
+
+		// Dropped tail: erase the leftover lines from the previous paint.
+		if (prevVisible > nextVisible) {
+			const dropped = prevVisible - nextVisible;
+			buf.push(ansiEscapes.eraseLines(dropped));
+		}
+
+		return buf.join('');
 	};
 
 	const emitRenderMetrics = (text: string, lineCount: number, startedAt: number): void => {
@@ -506,7 +679,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		if (!interactive && !debug && lastOutput.length > 0) {
 			writeStream.write(`${lastOutput}\n`);
 		}
-		if (interactive) writeStream.off('resize', onResize);
+		writeStream.off('resize', onResize);
 		if (exitOnCtrlC) {
 			process.off('SIGINT', onSignal);
 			process.off('SIGTERM', onSignal);
@@ -517,11 +690,20 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		}
 		destroyFocusManager();
 		animationScheduler.destroy();
+		if (cancelKittyDetection) cancelKittyDetection();
 		inputManager.destroy();
 		app.unmount();
 		if (kittyProtocolEnabled) {
 			writeStream.write(disableKittyKeyboard());
 			kittyProtocolEnabled = false;
+		}
+		// Leave the alt-screen buffer before restoring the cursor: the
+		// alt-screen teardown is intentionally disposable (matches ink's
+		// behavior — see brain/porting/from-react-ink.md), and cursorShow
+		// has to land on the primary screen so the user's terminal isn't
+		// left with a hidden caret.
+		if (useAlternateScreen) {
+			writeStream.write(ansiEscapes.exitAlternativeScreen);
 		}
 		if (useTTYFrame && cursorHidden) {
 			writeStream.write(ansiEscapes.cursorShow);
@@ -537,22 +719,73 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		exitResolve();
 	};
 
+	// Alt-screen switch happens before any frame paints so the user's primary
+	// screen content stays clean. Emitted before kitty so the test contract
+	// "enter-alt-screen is the very first write" holds even when both are on.
+	if (useAlternateScreen) {
+		writeStream.write(ansiEscapes.enterAlternativeScreen);
+	}
+
 	// Push kitty keyboard mode (if requested) before app.mount so that any
 	// composable attaching a stdin listener during mount sees the enhanced
 	// format from the first event. Terminals that don't support kitty
 	// silently ignore the escape.
+	let cancelKittyDetection: (() => void) | undefined;
 	const kittyOptions = options.kittyKeyboard;
 	if (kittyOptions && kittyOptions.mode !== 'disabled') {
 		const flags: KittyFlagName[] = kittyOptions.flags ?? ['disambiguateEscapeCodes'];
-		writeStream.write(enableKittyKeyboard(flags));
-		kittyProtocolEnabled = true;
+		const mode = kittyOptions.mode ?? 'auto';
+		const enableProtocol = (): void => {
+			writeStream.write(enableKittyKeyboard(flags));
+			kittyProtocolEnabled = true;
+		};
+		if (mode === 'enabled') {
+			enableProtocol();
+		} else if (options.interactive !== false) {
+			// `auto`: query the terminal and only push the protocol if it
+			// responds within 200ms. Listen before writing the query so a fast
+			// (synchronous) response isn't dropped.
+			let responseBuffer: number[] = [];
+			let timer: ReturnType<typeof setTimeout> | undefined;
+			const cleanup = (): void => {
+				cancelKittyDetection = undefined;
+				if (timer !== undefined) {
+					clearTimeout(timer);
+					timer = undefined;
+				}
+				stdin.off('data', onResponseData);
+				// Re-emit any user-typed bytes that arrived during detection so
+				// they aren't lost from the normal input pipeline. Strip just the
+				// protocol response bytes and any trailing partial match.
+				const remaining = stripKittyQueryResponses(responseBuffer);
+				responseBuffer = [];
+				if (remaining.length > 0 && typeof stdin.unshift === 'function') {
+					stdin.unshift(Uint8Array.from(remaining));
+				}
+			};
+			const onResponseData = (chunk: Buffer | string): void => {
+				const buf = typeof chunk === 'string' ? Buffer.from(chunk, 'utf8') : chunk;
+				for (const byte of buf) responseBuffer.push(byte);
+				if (hasCompleteKittyQueryResponse(responseBuffer)) {
+					cleanup();
+					if (!unmounted) enableProtocol();
+				}
+			};
+			stdin.on('data', onResponseData);
+			timer = setTimeout(cleanup, 200);
+			cancelKittyDetection = cleanup;
+			writeStream.write('\x1b[?u');
+		}
 	}
 
 	app.mount(rootNode);
 
-	if (interactive && !debug) {
-		writeStream.on('resize', onResize);
-	}
+	// Resize handling is independent of painting mode: composables like
+	// `useBoxMetrics` rely on the renderer running `renderTree` (and firing
+	// layout listeners) on every column change. We always attach the
+	// listener — non-TTY streams (CI, testing-library's fake stdout) simply
+	// don't emit `resize` unless a test fires it manually.
+	writeStream.on('resize', onResize);
 
 	if (exitOnCtrlC) {
 		process.on('SIGINT', onSignal);

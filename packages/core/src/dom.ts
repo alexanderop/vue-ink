@@ -12,6 +12,49 @@ type InkNode = {
 	style: Styles;
 };
 
+export type LayoutListener = () => void;
+
+export type AccessibilityRole =
+	| 'button'
+	| 'checkbox'
+	| 'combobox'
+	| 'list'
+	| 'listbox'
+	| 'listitem'
+	| 'menu'
+	| 'menuitem'
+	| 'option'
+	| 'progressbar'
+	| 'radio'
+	| 'radiogroup'
+	| 'tab'
+	| 'tablist'
+	| 'table'
+	| 'textbox'
+	| 'timer'
+	| 'toolbar';
+
+export type AccessibilityState = {
+	readonly busy?: boolean;
+	readonly checked?: boolean;
+	readonly disabled?: boolean;
+	readonly expanded?: boolean;
+	readonly multiline?: boolean;
+	readonly multiselectable?: boolean;
+	readonly readonly?: boolean;
+	readonly required?: boolean;
+	readonly selected?: boolean;
+};
+
+export type AccessibilityInfo = {
+	/** Announced in place of the subtree when set. */
+	readonly label?: string;
+	/** Skip this subtree entirely in the screen-reader walk. */
+	readonly hidden?: boolean;
+	readonly role?: AccessibilityRole;
+	readonly state?: AccessibilityState;
+};
+
 export type TextName = '#text';
 export type ElementNames = 'ink-root' | 'ink-box' | 'ink-text' | 'ink-virtual-text' | 'ink-comment';
 
@@ -27,8 +70,22 @@ export type DOMElement = {
 	 * frame and never repainted). Set by the {@link Static} component.
 	 */
 	internal_static?: boolean;
+	/**
+	 * ARIA metadata for the screen-reader render path. Lives on the DOM node
+	 * so it survives across paints without re-running setup. Read by
+	 * {@link renderNodeToScreenReaderOutput}; ignored by the regular paint
+	 * (regular output never reads role/state — visual UI uses the chalk
+	 * pipeline instead).
+	 */
+	internal_accessibility?: AccessibilityInfo;
 	onComputeLayout?: () => void;
 	onRender?: () => void;
+	/**
+	 * Layout-commit subscribers attached to the root node. Fired by the
+	 * renderer after every paint so composables (e.g. `useBoxMetrics`) can
+	 * re-read Yoga-computed metrics without having to rerender themselves.
+	 */
+	internal_layoutListeners?: Set<LayoutListener>;
 } & InkNode;
 
 export type TextNode = {
@@ -219,4 +276,35 @@ export const setTextNodeValue = (node: TextNode, text: string): void => {
 
 	node.nodeValue = text;
 	markNodeAsDirty(node);
+};
+
+/**
+ * Subscribe to layout commits on the root node. The listener fires after
+ * the renderer finishes each paint. Returns a disposer. No-op (with a
+ * no-op disposer) for any node that isn't `ink-root`.
+ */
+export const addLayoutListener = (
+	rootNode: DOMElement,
+	listener: LayoutListener,
+): (() => void) => {
+	if (rootNode.nodeName !== 'ink-root') {
+		return () => {};
+	}
+
+	rootNode.internal_layoutListeners ??= new Set();
+	rootNode.internal_layoutListeners.add(listener);
+
+	return () => {
+		rootNode.internal_layoutListeners?.delete(listener);
+	};
+};
+
+/**
+ * Fire every layout listener registered on `rootNode`. Renderer calls this
+ * once per commit, after Yoga has finished computing the new layout.
+ */
+export const emitLayoutListeners = (rootNode: DOMElement): void => {
+	const listeners = rootNode.internal_layoutListeners;
+	if (!listeners || listeners.size === 0) return;
+	for (const listener of listeners) listener();
 };

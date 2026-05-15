@@ -74,6 +74,13 @@ const setProp = (node: DOMElement, key: string, value: unknown): void => {
 		return;
 	}
 
+	if (key === 'internal_accessibility') {
+		// `undefined` clears the slot so unsetting aria-* props on rerender
+		// stops them from leaking into subsequent screen-reader walks.
+		node.internal_accessibility = value as DOMElement['internal_accessibility'];
+		return;
+	}
+
 	// Vue still passes `key` and `ref` to patchProp for components with
 	// runtime-rendered slots; they are framework metadata and must not reach
 	// the host DOM. Branch coverage only exercises one side at a time.
@@ -165,6 +172,19 @@ const { createApp } = createRenderer<HostNode, HostElement>({
 		// so this guard is defensive against direct patcher callers.
 		/* v8 ignore next */
 		if (prevValue === nextValue) return;
+		if (key === 'style') {
+			// Surface keys that disappeared since the last render as explicit
+			// `undefined` so applyStyles can reset the corresponding Yoga
+			// property instead of leaking the old value.
+			const prev = (prevValue ?? {}) as Record<string, unknown>;
+			const next = { ...((nextValue ?? {}) as Record<string, unknown>) };
+			for (const prevKey of Object.keys(prev)) {
+				if (!(prevKey in next)) next[prevKey] = undefined;
+			}
+			setProp(el, key, next);
+			scheduleRender(el);
+			return;
+		}
 		setProp(el, key, nextValue);
 		scheduleRender(el);
 	},

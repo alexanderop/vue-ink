@@ -91,7 +91,18 @@ export type RenderResult = {
 
 const activeInstances = new Set<RenderInstance>();
 
-export const render = (component: Component): RenderResult => {
+export type RenderOptions = {
+	/**
+	 * Render the screen-reader output path instead of the visual layout.
+	 * Mirrors ink's `renderToString(node, { isScreenReaderEnabled: true })`.
+	 */
+	isScreenReaderEnabled?: boolean;
+};
+
+export const render = (
+	component: Component,
+	options: RenderOptions = {},
+): RenderResult => {
 	const stdout = new Stdout();
 	const stderr = new Stderr();
 	const stdin = new Stdin();
@@ -108,6 +119,7 @@ export const render = (component: Component): RenderResult => {
 		exitOnCtrlC: false,
 		patchConsole: false,
 		maxFps: Number.POSITIVE_INFINITY,
+		isScreenReaderEnabled: options.isScreenReaderEnabled,
 	});
 
 	activeInstances.add(instance);

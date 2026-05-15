@@ -27,6 +27,8 @@
 - [[renderer/output-hot-path]]
 - [[renderer/input-pipeline]]
 - [[renderer/static-dedup]] — why `<Static>` dedup happens in the renderer, not the component
+- [[renderer/layout-listeners]] — post-commit hook for Yoga-aware composables; the resize listener is now unconditional
+- [[renderer/screen-reader]] — aria-* props on Box/Text feed a separate walker when `isScreenReaderEnabled` is on
 
 ## Composables
 
@@ -39,6 +41,7 @@
 ## Porting
 
 - [[porting/from-react-ink]]
+- [[porting/api-tracker]] — flat ✅/❌ checklist of every ink API and where vue-ink implements it
 
 ## Other
 

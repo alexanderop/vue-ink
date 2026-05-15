@@ -39,12 +39,12 @@ training data.
 
 | ink           | vue-ink         | Status      | Notes                                 |
 |---------------|-----------------|-------------|---------------------------------------|
-| `<Box>`       | `<Box>`         | ✓ partial   | No `aria-label` / `aria-hidden` / `aria-role` / `aria-state` props yet |
-| `<Text>`      | `<Text>`        | ✓ partial   | No `aria-label` / `aria-hidden` props yet |
+| `<Box>`       | `<Box>`         | ✓           | aria-label/hidden/role/state wired through [[../renderer/screen-reader]] |
+| `<Text>`      | `<Text>`        | ✓           | aria-label/hidden wired through [[../renderer/screen-reader]] |
 | `<Newline>`   | `<Newline>`     | ✓           | `count?: number` (default 1)          |
 | `<Spacer>`    | `<Spacer>`      | ✓           | Equivalent to `<Box flexGrow={1}>`    |
-| `<Transform>` | `<Transform>`   | ✓ partial   | No `accessibilityLabel` prop yet      |
-| `<Static>`    | **not ported**  | ❌ gap       | Logs / write-once areas. Workaround: write to `useStdout().write()` for ephemeral above-the-fold output |
+| `<Transform>` | `<Transform>`   | ✓           | `accessibilityLabel` wired through to the SR walker as the announced text |
+| `<Static>`    | `<Static>`      | ✓           | Append-only items above the live frame. Dedup happens in the renderer, not the component — see [[../renderer/static-dedup]] |
 
 ### Hooks → composables
 
@@ -61,8 +61,8 @@ training data.
 | `useWindowSize()`            | `useWindowSize()`                         | ✓ shape differs: two `ShallowRef<number>` instead of one object |
 | `useIsScreenReaderEnabled()` | `useIsScreenReaderEnabled()`              | ✓ returns `Ref<boolean>`                |
 | `useAnimation({...})`        | `useAnimation({...})`                     | ✓ returns four `ShallowRef`s + reset    |
-| `useCursor()`                | **not ported**                            | ❌ gap — no API to position cursor for IME |
-| `useBoxMetrics(ref)`         | **not ported**                            | ❌ gap — no per-Box measured layout API |
+| `useCursor()`                | `useCursor()`                             | ✓ returns `{ setCursorPosition }`; renderer hides cursor on scope dispose |
+| `useBoxMetrics(ref)`         | `useBoxMetrics(ref)`                      | ✓ returns `{width, height, left, top, hasMeasured}` (all `ShallowRef<number/boolean>`); accepts the `<Box>` expose proxy or raw `ink-box` DOMElement — see [[../renderer/layout-listeners]] |
 
 ### `RenderOptions`
 
@@ -77,10 +77,10 @@ training data.
 | `onRender(metrics)`       | `onRender(metrics)`      | ✓ metrics shape: `{frame, durationMs, lineCount, output}` |
 | `isScreenReaderEnabled`   | `isScreenReaderEnabled`  | ✓ env: `INK_SCREEN_READER=true`     |
 | `maxFps`                  | `maxFps`                 | ✓ default `30`                      |
-| `kittyKeyboard`           | `kittyKeyboard`          | ⚠️ no auto-detect — must set `mode: 'enabled'` explicitly |
+| `kittyKeyboard`           | `kittyKeyboard`          | ✓ `mode: 'auto'` queries `CSI ? u` with a 200ms timeout, falls back silently |
 | `interactive`             | `interactive`            | ✓ auto-detected `isTTY && !isCi`    |
-| `incrementalRendering`    | **not ported**           | ❌ gap                              |
-| `alternateScreen`         | **not ported**           | ❌ gap — full-screen TUIs share the scroll buffer |
+| `incrementalRendering`    | `incrementalRendering`   | ✓ line-level diff using `cursorNextLine`; shrinking output erases the dropped tail |
+| `alternateScreen`         | `alternateScreen`        | ✓ gated on `interactive && isTTY`; enter is the first write, exit lands before `cursorShow` on teardown |
 | `concurrent`              | n/a                      | Vue's scheduler is always async-batched |
 
 ### `Instance`
@@ -121,9 +121,11 @@ Vue-ink-specific defaults:
 Same as ink. Provides `BACKGROUND_COLOR_INJECT_KEY` so a nested `<Text>`
 inherits the parent's `backgroundColor` without re-passing the prop.
 
-**Gaps**: `aria-label`, `aria-hidden`, `aria-role`, `aria-state` are
-**not** wired through to the accessibility output tree yet. If your
-ink app uses screen-reader hints, expect to leave those out for now.
+`aria-label`, `aria-hidden`, `aria-role`, `aria-state` are forwarded
+to the screen-reader walker via `internal_accessibility` on the host
+node. See [[../renderer/screen-reader]] for the walker contract.
+`<Box ref="…">` exposes `$element` so `useBoxMetrics` can reach the
+underlying `ink-box` without users typing the host element name.
 
 ### `<Text>`
 
@@ -132,9 +134,10 @@ Props: `color`, `backgroundColor`, `dimColor`, `bold`, `italic`,
 'truncate-start' | 'truncate-middle' | 'truncate-end'`, default
 `'wrap'`).
 
-**Gaps**: no `aria-label` / `aria-hidden`. If your ink app passes
-`aria-label` to substitute screen-reader content, you'll need a manual
-conditional with `useIsScreenReaderEnabled()` until those props land.
+`aria-label` and `aria-hidden` are forwarded to the screen-reader
+walker via `internal_accessibility`. `aria-label` replaces the text
+content in SR mode; `aria-hidden` drops the node from the SR walk. See
+[[../renderer/screen-reader]].
 
 **SFC gotcha**: Vue compiles `<template>` with whitespace normalization,
 so multi-line text inside `<Text>` collapses to one line. Use
@@ -153,31 +156,40 @@ line two</Text>
 
 - `<Newline count?>` — must be inside `<Text>`. Renders `'\n'.repeat(count)`.
 - `<Spacer>` — equivalent to `<Box flexGrow={1}>`. Trivial.
-- `<Transform transform>` — `transform: (children: string, index: number) => string`.
-  The `accessibilityLabel` prop from ink is not yet wired.
+- `<Transform transform accessibilityLabel?>` —
+  `transform: (children: string, index: number) => string`. When the
+  screen reader is active, `accessibilityLabel` replaces the transformed
+  visual output (so a gradient-render label like "✦✧✦" announces as
+  "Loading…" instead of the raw glyphs).
 
 All three participate in the `INSIDE_TEXT_KEY` provide/inject system so
 nested `<Text>`/`<Newline>`/`<Transform>` are rewritten to
 `ink-virtual-text` automatically. See
 [[../renderer/nested-text-must-be-virtual]].
 
-### `<Static>`: not ported
+### `<Static>`
 
-If your ink app uses `<Static items children>` for a log-style "render
-once then keep" region, you have three options:
+Append-only items rendered above the live frame and preserved as
+scrollback. Slot receives `{ item, index }`:
 
-1. **Use `useStdout().write(text)`** for one-shot lines that should
-   appear above the live frame. ink's Static does more (re-renders only
-   new items and stitches them above), but `write()` is the closest
-   primitive.
-2. **Move the static items into a sibling `<Box>` above the dynamic
-   region.** Yoga handles re-layout cheaply, so for small lists this is
-   fine.
-3. **Wait or port it.** Static lives in `repos/ink/src/components/Static.tsx`
-   — the contract is small. Replicating it in vue-ink means: provide
-   internal `internal_static` on the Box, hook it into the reconciler
-   resetAfterCommit phase. See ink's `reconciler.ts` for the
-   `onStaticChange` / `onImmediateRender` ordering trick.
+```vue
+<Static :items="completed">
+  <template #default="{ item, index }">
+    <Text>{{ index }}: {{ item }}</Text>
+  </template>
+</Static>
+```
+
+Unlike ink's React `Static` (which slices `items.slice(index)` and bumps
+an index via `useLayoutEffect`), vue-ink's component always emits every
+item; the renderer compares the serialized static output with the last
+paint and writes only the new suffix. Vue's scheduler doesn't give us a
+post-commit-pre-paint hook the way React does, so we moved the dedup
+into the renderer — see [[../renderer/static-dedup]] for the why.
+
+**Invariant**: items are append-only. Mutating earlier items in place
+(or swapping the array for a reordered copy) breaks the prefix match
+and re-emits the full static output above the next frame.
 
 ## Hooks → composables: the three shape changes
 
@@ -290,14 +302,14 @@ top-level component often runs the whole app lifetime.
 ### `waitUntilExit()` hangs without input handlers
 
 If your top-level component has **no** `useInput` / `useApp` / paste
-handler / focus hook, vue-ink never enables raw mode, so stdin stays
-paused and `waitUntilExit()` never resolves. Two ways out:
+handler / focus composable, vue-ink never enables raw mode, so stdin
+stays paused and `waitUntilExit()` never resolves. Two ways out:
 
 1. Call `instance.unmount()` when the work is done (one-shot render).
 2. Add `useInput((input, key) => { if (key.escape) useApp().exit() })`.
 
 Same trap exists in ink but most apps mask it by mounting at least one
-input hook.
+input composable.
 
 ### `requireContext` for required injections
 
@@ -446,28 +458,12 @@ Numbered, ordered by frequency of hitting them:
 If your ink app uses any of these, plan for a workaround or a
 contribution:
 
-- **`<Static>` component** — no log-style write-once region. Workaround:
-  `useStdout().write()` for ephemeral above-the-fold lines.
-- **`useCursor()`** — no API to position cursor for IME / inline
-  editing affordances.
-- **`useBoxMetrics(ref)`** — no per-Box measured layout introspection.
-  If you need this, you'd reach into the renderer directly.
-- **`aria-*` props on Box/Text/Transform** — accessibility tree not
-  wired through. `useIsScreenReaderEnabled()` works as a manual
-  fallback.
-- **`alternateScreen: true` in `RenderOptions`** — full-screen TUIs
-  share the scrollback buffer. Significant gap for editor-style apps.
-- **`incrementalRendering: true`** — paint always redraws full diff
-  region rather than incremental line updates.
-- **Kitty keyboard auto-detect** — `mode: 'auto'` doesn't query the
-  terminal yet. Set `mode: 'enabled'` explicitly if you want kitty
-  semantics.
 - **Concurrent / Suspense semantics** — n/a; Vue's scheduler is
   always-async-batched. If your ink app relied on Suspense for
   resource loading, refactor to plain `async setup()` + a fallback
   ref.
 - **Signal forwarding for user code** — SIGINT/SIGTERM auto-unmount;
-  no `onSignal` hook to intercept before cleanup.
+  no `onSignal` composable to intercept before cleanup.
 
 ## When in doubt: read the real source
 

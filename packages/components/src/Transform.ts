@@ -1,5 +1,5 @@
 import { defineComponent, h, type PropType, type VNodeChild } from 'vue';
-import { type OutputTransformer } from '@vue-ink/core';
+import { type AccessibilityInfo, type OutputTransformer } from '@vue-ink/core';
 import { useTextHost } from './text-context.ts';
 
 export type TransformProps = {
@@ -24,11 +24,16 @@ const Transform = defineComponent({
 		return () => {
 			const children = (slots.default?.() ?? []) as VNodeChild[];
 			if (children.length === 0) return null;
+			const accessibility: AccessibilityInfo | undefined =
+				props.accessibilityLabel !== undefined
+					? { label: props.accessibilityLabel }
+					: undefined;
 			return h(
 				tag,
 				{
 					style: { flexGrow: 0, flexShrink: 1, flexDirection: 'row' },
 					internal_transform: props.transform,
+					internal_accessibility: accessibility,
 				},
 				children,
 			);

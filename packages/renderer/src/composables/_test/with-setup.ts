@@ -16,9 +16,11 @@ import {
 	ACCESSIBILITY_CONTEXT_KEY,
 	FOCUS_CONTEXT_KEY,
 	ANIMATION_CONTEXT_KEY,
+	CURSOR_CONTEXT_KEY,
 	type AccessibilityContext,
 	type AnimationContext,
 	type AppContext,
+	type CursorContext,
 	type FocusContext,
 	type StdinContext,
 	type StdoutContext,
@@ -95,6 +97,7 @@ export type WithSetupContexts = Partial<{
 	accessibility: AccessibilityContext;
 	focus: FocusContext;
 	animation: AnimationContext;
+	cursor: CursorContext;
 }>;
 
 export type WithSetupResult<T> = {
@@ -141,6 +144,7 @@ export const withSetup = <T>(
 	if (contexts.accessibility) app.provide(ACCESSIBILITY_CONTEXT_KEY, contexts.accessibility);
 	if (contexts.focus) app.provide(FOCUS_CONTEXT_KEY, contexts.focus);
 	if (contexts.animation) app.provide(ANIMATION_CONTEXT_KEY, contexts.animation);
+	if (contexts.cursor) app.provide(CURSOR_CONTEXT_KEY, contexts.cursor);
 
 	const root: Noop = {};
 	app.mount(root);

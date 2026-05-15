@@ -32,3 +32,13 @@ export {
 	type UseAnimationOptions,
 	type UseAnimationReturn,
 } from './useAnimation/index.ts';
+export {
+	useBoxMetrics,
+	type BoxMetricsTarget,
+	type UseBoxMetricsReturn,
+} from './useBoxMetrics/index.ts';
+export {
+	useCursor,
+	type CursorPosition,
+	type UseCursorReturn,
+} from './useCursor/index.ts';
