@@ -3,11 +3,12 @@ import { EventEmitter } from 'node:events';
 import { defineComponent, h, nextTick, type Component } from 'vue';
 import stripAnsi from 'strip-ansi';
 import { vi } from 'vitest';
-import { render } from '../src/index.ts';
+import { render, renderToString as publicRenderToString } from '../src/index.ts';
 import { _flushActiveInstances } from '@vue-ink/renderer';
 
 export const createCaptureStream = (
 	columns = 80,
+	options: { isTTY?: boolean } = {},
 ): NodeJS.WriteStream & {
 	frames: string[];
 } => {
@@ -24,7 +25,7 @@ export const createCaptureStream = (
 	};
 
 	stream.columns = columns;
-	stream.isTTY = false;
+	stream.isTTY = options.isTTY ?? false;
 	stream.frames = frames;
 	return stream as unknown as NodeJS.WriteStream & { frames: string[] };
 };
@@ -46,45 +47,27 @@ export const flush = async (): Promise<void> => {
 
 export type RenderToStringOptions = {
 	columns?: number;
+};
+
+export type RenderReusableOptions = {
+	columns?: number;
 	stdin?: NodeJS.ReadStream;
 	exitOnCtrlC?: boolean;
 	interactive?: boolean;
 };
 
-// Ink-style render helper: mount a component, flush vue's scheduler, return
-// the joined frames. `raw=true` keeps ANSI sequences; otherwise strips them
-// and trims trailing newlines for stable snapshot comparison.
+// Thin wrappers over the public `renderToString` so the test suite stays
+// terse (`stripAnsi` + trim) while exercising the same code path users get.
 export const renderToString = async (
 	component: Component,
-	options: RenderToStringOptions & { raw?: false } = {},
-): Promise<string> => {
-	const stdout = createCaptureStream(options.columns ?? 80);
-	const instance = render(component, {
-		stdout,
-		stdin: options.stdin,
-		exitOnCtrlC: options.exitOnCtrlC,
-		interactive: options.interactive ?? true,
-	});
-	await flush();
-	instance.unmount();
-	return stripAnsi(stdout.frames.join('')).replace(/\n+$/, '');
-};
+	options: RenderToStringOptions = {},
+): Promise<string> =>
+	stripAnsi(publicRenderToString(component, options)).replace(/\n+$/, '');
 
 export const renderToStringRaw = async (
 	component: Component,
 	options: RenderToStringOptions = {},
-): Promise<string> => {
-	const stdout = createCaptureStream(options.columns ?? 80);
-	const instance = render(component, {
-		stdout,
-		stdin: options.stdin,
-		exitOnCtrlC: options.exitOnCtrlC,
-		interactive: options.interactive ?? true,
-	});
-	await flush();
-	instance.unmount();
-	return stdout.frames.join('');
-};
+): Promise<string> => publicRenderToString(component, options);
 
 export type RenderResult = {
 	stdout: ReturnType<typeof createCaptureStream>;
@@ -94,10 +77,12 @@ export type RenderResult = {
 	rawOutput: () => string;
 };
 
-// For tests that need to rerender or assert across multiple frames.
+// For tests that need to rerender or assert across multiple frames. Goes
+// through the full `render()` pipeline (frames, throttling, etc.) — only
+// `renderToString` is a public ink-equivalent; this stays a local helper.
 export const renderReusable = async (
 	component: Component,
-	options: RenderToStringOptions = {},
+	options: RenderReusableOptions = {},
 ): Promise<RenderResult> => {
 	const stdout = createCaptureStream(options.columns ?? 80);
 	const instance = render(component, {

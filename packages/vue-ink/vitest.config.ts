@@ -15,17 +15,13 @@ export default defineConfig({
 			'packages/renderer/src/composables/**/*.test.ts',
 		],
 		pool: 'forks',
-		poolOptions: {
-			forks: {
-				singleFork: true,
-			},
-		},
 		setupFiles: ['./packages/vue-ink/test/setup.ts'],
 		testTimeout: 15_000,
 		coverage: {
 			provider: 'v8',
 			// Tests exercise all four packages via vue-ink's re-exports —
-			// instrument every package source tree.
+			// instrument every package source tree. Vitest 4 removed the
+			// `all` option; `include` patterns now drive what gets covered.
 			include: ['packages/*/src/**/*.ts'],
 			exclude: [
 				'**/dist/**',
@@ -39,7 +35,6 @@ export default defineConfig({
 			],
 			reporter: ['text', 'html', 'lcov'],
 			reportsDirectory: 'coverage',
-			all: true,
 		},
 	},
 });

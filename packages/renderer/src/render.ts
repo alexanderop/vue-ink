@@ -2,7 +2,7 @@ import process from 'node:process';
 import { formatWithOptions } from 'node:util';
 import Yoga from 'yoga-layout';
 import ansiEscapes from 'ansi-escapes';
-import { h, nextTick as vueNextTick, ref, shallowRef, type Component } from 'vue';
+import { h, nextTick as vueNextTick, ref, shallowRef, watch, type Component } from 'vue';
 import { createApp } from './renderer.ts';
 import {
 	createNode,
@@ -116,7 +116,12 @@ const isCiEnv = (): boolean => {
 export type Instance = {
 	rerender: (component: Component) => void;
 	unmount: () => void;
-	waitUntilExit: () => Promise<void>;
+	/**
+	 * Resolves when the app unmounts. If `useApp().exit(value)` was called the
+	 * promise resolves with that value; `useApp().exit(error)` (an `Error`)
+	 * rejects it. Plain `unmount()` resolves with `undefined`.
+	 */
+	waitUntilExit: () => Promise<unknown>;
 	waitUntilRenderFlush: () => Promise<void>;
 	clear: () => void;
 };
@@ -252,7 +257,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	const existing = instances.get(writeStream);
 	if (existing) {
-		process.stderr.write(
+		stderr.write(
 			'Warning: render() was called again for the same stdout before the previous instance was unmounted. Reusing stdout across multiple render() calls is unsupported. Call unmount() first.\n',
 		);
 		existing.rerender(component);
@@ -283,12 +288,19 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	// The Promise constructor runs its executor synchronously, so by the time
 	// these are read elsewhere they're always the real resolve/reject — the
 	// no-op assertions here just satisfy the type checker before assignment.
-	let exitResolve: () => void = noop;
+	let exitResolve: (value: unknown) => void = noop;
 	let exitReject: (err: Error) => void = noop;
-	const exitPromise = new Promise<void>((resolve, reject) => {
+	const exitPromise = new Promise<unknown>((resolve, reject) => {
 		exitResolve = resolve;
 		exitReject = reject;
 	});
+	// Prevent unhandled-rejection crashes when app code exits with an error
+	// but consumers never call waitUntilExit(). Mirrors ink at
+	// `repos/ink/src/ink.tsx:456`.
+	void exitPromise.catch(noop);
+	// Value passed to `useApp().exit(value)` for non-error resolution. Mirrors
+	// ink's `exitResult` field (`ink.tsx:309,489,842`).
+	let exitResult: unknown;
 	let unmounted = false;
 	let cursorHidden = false;
 	let kittyProtocolEnabled = false;
@@ -297,6 +309,12 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	// but the real body (which itself calls inputManager.destroy/app.unmount)
 	// can only be assembled once those values exist.
 	let unmount: () => void = noop;
+	// Forward-declared so the errorHandler at mount time (which calls
+	// `unmount()` synchronously) can safely run before the `instance` literal
+	// is assigned at the bottom of this closure. `Set#delete(undefined)` is a
+	// harmless no-op.
+	// eslint-disable-next-line prefer-const -- forward declaration; assigned below
+	let instance: Instance | undefined;
 
 	const inputManager = createInputManager({
 		stdin,
@@ -306,8 +324,19 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	});
 
 	app.provide(APP_CONTEXT_KEY, {
-		exit: (error?: Error) => {
-			if (error) exitReject(error);
+		exit: (errorOrValue?: unknown) => {
+			if (unmounted) return;
+			if (errorOrValue instanceof Error) {
+				// Reject path — `unmount()` later calls `exitResolve(exitResult)`
+				// but `exitReject` claims the settlement first so the resolve is
+				// a no-op on an already-rejected promise.
+				exitReject(errorOrValue);
+				unmount();
+				return;
+			}
+			// Non-error resolution: stash the value so `unmount()` resolves
+			// the exit promise with it. Mirrors ink at `ink.tsx:489`.
+			exitResult = errorOrValue;
 			unmount();
 		},
 		waitUntilRenderFlush: () => waitUntilRenderFlush(),
@@ -346,12 +375,35 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		lastLineCount = 0;
 	};
 
+	// Tracks whether an outer `writeAboveFrame` already opened a DEC 2026
+	// synchronized frame. `doRender()` checks this so nested writes don't
+	// emit a second BSU/ESU pair — terminals interpret stacked pairs as
+	// "close immediately", defeating the whole point.
+	let syncFrameDepth = 0;
+
 	// Erase the current frame, write data to `target`, then repaint. Mirrors
 	// ink's `useStdout().write` choreography so logs land above the live UI.
+	// The erase + write + repaint trio is wrapped in synchronized-output
+	// escapes so terminals supporting DEC 2026 don't flicker through a
+	// half-erased intermediate frame on rapid writes. The whole call is a
+	// no-op after unmount — matches ink at `ink.tsx:672-674`.
 	const writeAboveFrame = (target: NodeJS.WriteStream, data: string): void => {
-		eraseCurrentFrame();
-		target.write(data);
-		if (!unmounted) renderImmediate();
+		if (unmounted) return;
+		const sync = useTTYFrame;
+		if (sync) {
+			writeStream.write(BSU);
+			syncFrameDepth += 1;
+		}
+		try {
+			eraseCurrentFrame();
+			target.write(data);
+			renderImmediate();
+		} finally {
+			if (sync) {
+				syncFrameDepth -= 1;
+				writeStream.write(ESU);
+			}
+		}
 	};
 
 	let trailingTimer: ReturnType<typeof setTimeout> | undefined;
@@ -425,6 +477,11 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		options.isScreenReaderEnabled ?? process.env['INK_SCREEN_READER'] === 'true',
 	);
 	app.provide(ACCESSIBILITY_CONTEXT_KEY, { isScreenReaderEnabled });
+	// `doRender` reads the ref but Vue's reactivity only triggers re-renders
+	// via the component tree — toggling the ref from a host-side composable
+	// (e.g. `useIsScreenReaderEnabled().value = true` outside a template)
+	// wouldn't repaint on its own. This watcher closes that gap.
+	watch(isScreenReaderEnabled, () => requestRender());
 
 	const shouldPatchConsole = options.patchConsole ?? true;
 	let unsubscribeConsole: (() => void) | undefined;
@@ -535,6 +592,10 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			// cursor inside the frame; it hides the cursor and walks back down to
 			// the bottom-left so the erase/diff math below is correct.
 			const returnPrefix = buildReturnToBottom(lastLineCount, lastCursorPosition);
+			// Skip BSU/ESU when an outer `writeAboveFrame` already opened a
+			// synchronized frame — nested pairs read as "close" on most terms.
+			const openSync = syncFrameDepth === 0 ? BSU : '';
+			const closeSync = syncFrameDepth === 0 ? ESU : '';
 
 			if (
 				incrementalRendering &&
@@ -543,12 +604,12 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 				newStaticFrame.length === 0
 			) {
 				writeStream.write(
-					`${BSU}${returnPrefix}${buildIncrementalDiff(lastOutputLines, nextLines)}${cursorSuffix}${ESU}`,
+					`${openSync}${returnPrefix}${buildIncrementalDiff(lastOutputLines, nextLines)}${cursorSuffix}${closeSync}`,
 				);
 			} else {
 				const erase = lastLineCount > 0 ? ansiEscapes.eraseLines(lastLineCount + 1) : '';
 				writeStream.write(
-					`${BSU}${returnPrefix}${erase}${newStaticFrame}${text}\n${cursorSuffix}${ESU}`,
+					`${openSync}${returnPrefix}${erase}${newStaticFrame}${text}\n${cursorSuffix}${closeSync}`,
 				);
 			}
 		}
@@ -624,7 +685,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			});
 		} catch (err) {
 			const stack = err instanceof Error ? (err.stack ?? err.message) : String(err);
-			process.stderr.write(`vue-ink onRender callback threw:\n${stack}\n`);
+			stderr.write(`vue-ink onRender callback threw:\n${stack}\n`);
 		}
 	};
 
@@ -639,7 +700,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		// state, then print the error and tear down cleanly.
 		eraseCurrentFrame();
 		const stack = err instanceof Error ? (err.stack ?? err.message) : String(err);
-		process.stderr.write(`vue-ink render error (${info}):\n${stack}\n`);
+		stderr.write(`vue-ink render error (${info}):\n${stack}\n`);
 		unmount();
 	};
 
@@ -714,16 +775,26 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			rootNode.yogaNode = undefined;
 		}
 		instances.delete(writeStream);
-		activeInstances.delete(instance);
+		// `instance` is forward-declared and assigned at the end of this
+		// closure. If the errorHandler fires during mount, `unmount` may run
+		// before that assignment — `Set#delete(undefined)` is a harmless no-op,
+		// but `activeInstances.delete` is typed as `delete(Instance)` so guard.
+		if (instance) activeInstances.delete(instance);
 		drainCommitWaiters();
-		exitResolve();
+		exitResolve(exitResult);
 	};
 
 	// Alt-screen switch happens before any frame paints so the user's primary
 	// screen content stays clean. Emitted before kitty so the test contract
 	// "enter-alt-screen is the very first write" holds even when both are on.
+	// Hide the cursor on entry (mirrors ink at `ink.tsx:969-975`) — the
+	// alt-screen has its own cursor state, and without an explicit hide the
+	// user briefly sees the caret blinking on a blank buffer before the
+	// first paint lands.
 	if (useAlternateScreen) {
 		writeStream.write(ansiEscapes.enterAlternativeScreen);
+		writeStream.write(ansiEscapes.cursorHide);
+		cursorHidden = true;
 	}
 
 	// Push kitty keyboard mode (if requested) before app.mount so that any
@@ -740,7 +811,14 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			kittyProtocolEnabled = true;
 		};
 		if (mode === 'enabled') {
-			enableProtocol();
+			// Force-enable still requires both streams to be TTYs — terminals
+			// can only respond to CSI escapes on a real tty, and writing the
+			// query to a pipe/file just pollutes captured output. Mirrors ink
+			// at `repos/ink/src/ink.tsx:1120-1126`.
+			const stdinIsTTY = Boolean((stdin as NodeJS.ReadStream).isTTY);
+			if (stdinIsTTY && isTTY) {
+				enableProtocol();
+			}
 		} else if (options.interactive !== false) {
 			// `auto`: query the terminal and only push the protocol if it
 			// responds within 200ms. Listen before writing the query so a fast
@@ -797,6 +875,13 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	renderImmediate();
 
 	const rerender = (newComponent: Component): void => {
+		// Component identity is changing — any prior `<Static>` scrollback
+		// state is no longer a valid diff anchor for the new tree. Resetting
+		// both vars matches ink's `handleStaticChange` (`ink.tsx:521-524`),
+		// which fires when Static's identity flips. Without this, a fresh
+		// Static in the new tree would be deduped against stale items.
+		lastStaticOutput = '';
+		fullStaticOutput = '';
 		currentComponent.value = newComponent;
 	};
 
@@ -816,7 +901,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		});
 	};
 
-	const instance: Instance = {
+	instance = {
 		rerender,
 		unmount,
 		waitUntilExit: () => {

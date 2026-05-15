@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { h, defineComponent } from 'vue';
 import {
 	render,
@@ -30,7 +30,7 @@ describe('kitty keyboard — exports', () => {
 describe('kitty keyboard — render integration', () => {
 	it('writes the push-keyboard-mode escape on mount when kittyKeyboard is configured', () => {
 		const fakeStdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const Demo = defineComponent({
 			setup: () => () => h('ink-text', null, 'x'),
 		});
@@ -51,7 +51,7 @@ describe('kitty keyboard — render integration', () => {
 
 	it('writes the pop-keyboard-mode escape on unmount', () => {
 		const fakeStdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const Demo = defineComponent({
 			setup: () => () => h('ink-text', null, 'x'),
 		});
@@ -70,7 +70,7 @@ describe('kitty keyboard — render integration', () => {
 
 	it('defaults to disambiguateEscapeCodes when flags are omitted', () => {
 		const fakeStdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const Demo = defineComponent({
 			setup: () => () => h('ink-text', null, 'x'),
 		});
@@ -124,7 +124,7 @@ describe('kitty keyboard — render integration', () => {
 describe('kitty keyboard — key delivery', () => {
 	it('delivers eventType: "release" through useInput', () => {
 		const fakeStdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const captured: Key[] = [];
 		const Demo = defineComponent({
 			setup() {
@@ -149,7 +149,7 @@ describe('kitty keyboard — key delivery', () => {
 
 	it('populates Key.super for a kitty super-modified key', () => {
 		const fakeStdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const captured: Key[] = [];
 		const Demo = defineComponent({
 			setup() {
@@ -172,7 +172,7 @@ describe('kitty keyboard — key delivery', () => {
 
 	it('populates Key.hyper for a kitty hyper-modified key', () => {
 		const fakeStdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const captured: Key[] = [];
 		const Demo = defineComponent({
 			setup() {

@@ -5,6 +5,14 @@ export {
 	type Instance,
 	type RenderMetrics,
 } from './render.ts';
+export {
+	renderToString,
+	type RenderToStringOptions,
+} from './renderToString.ts';
+export {
+	measureElement,
+	type MeasureElementOutput,
+} from './measureElement.ts';
 export { createApp } from './renderer.ts';
 export {
 	useApp,

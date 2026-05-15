@@ -11,15 +11,15 @@ import { useInput } from './index.ts';
 // fakeStdinContext helper here.
 type TestStdinCtx = StdinContext & {
 	emitter: EventEmitter;
-	setRawMode: ReturnType<typeof vi.fn>;
-	setBracketedPasteMode: ReturnType<typeof vi.fn>;
+	setRawMode: ReturnType<typeof vi.fn<(enable: boolean) => void>>;
+	setBracketedPasteMode: ReturnType<typeof vi.fn<(enable: boolean) => void>>;
 };
 
 const buildStdin = (overrides: Partial<TestStdinCtx> = {}): TestStdinCtx => ({
 	stdin: createFakeStdin(),
 	isRawModeSupported: true,
-	setRawMode: vi.fn(),
-	setBracketedPasteMode: vi.fn(),
+	setRawMode: vi.fn<(enable: boolean) => void>(),
+	setBracketedPasteMode: vi.fn<(enable: boolean) => void>(),
 	emitter: new EventEmitter(),
 	...overrides,
 });

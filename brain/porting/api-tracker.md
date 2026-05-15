@@ -124,8 +124,8 @@ Details in [[from-react-ink#hooks-composables-the-three-shape-changes]].
 | ink                                  | vue-ink                                 | Status | Where                                       |
 |--------------------------------------|-----------------------------------------|--------|---------------------------------------------|
 | `render(tree, options?)`             | `render(component, options?)`           | ✅     | `packages/renderer/src/render.ts`           |
-| `renderToString(tree, options?)`     | `renderToString(component, options?)`   | 🟡     | `packages/vue-ink/test/helpers.ts` (test-only — **not exported from `@vue-ink/vue-ink`**) |
-| `measureElement(ref)`                | `useBoxMetrics(ref)` (preferred)        | ❌     | No top-level `measureElement` export; reactive equivalent ships via composable |
+| `renderToString(tree, options?)`     | `renderToString(component, options?)`   | ✅     | `packages/renderer/src/renderToString.ts`; re-exported from `@vue-ink/vue-ink` |
+| `measureElement(ref)`                | `measureElement(ref)`                   | ✅     | `packages/renderer/src/measureElement.ts`; re-exported from `@vue-ink/vue-ink`. Reactive sibling stays available as `useBoxMetrics(ref)` |
 
 ### `Instance` methods
 
@@ -161,7 +161,8 @@ Details in [[from-react-ink#hooks-composables-the-three-shape-changes]].
 
 | ink                       | vue-ink                  | Status |
 |---------------------------|--------------------------|--------|
-| `columns`                 | `columns`                | 🟡     | works in test helper, not a published API |
+| `columns`                 | `columns`                | ✅     |
+| —                         | `isScreenReaderEnabled`  | ✅     | vue-ink extension; mirrors the `render()` option |
 
 ---
 
@@ -218,21 +219,7 @@ These exist for React reasons and have no vue-ink analogue:
 
 ## Gaps worth filling (ranked by likely demand)
 
-1. **Public `renderToString` export** — `packages/vue-ink/test/helpers.ts`
-   already has a working sync-ish implementation. Promote it to
-   `@vue-ink/renderer` and re-export from `vue-ink`. Note the
-   limitations the ink readme calls out (terminal hooks return no-ops,
-   `useEffect` side effects don't affect output, `useLayoutEffect`
-   does).
-
-2. **`measureElement(ref)`** — ink ships a non-reactive one-shot
-   measure helper. vue-ink users currently reach for `useBoxMetrics`,
-   which is reactive (good) but allocates a watcher (overkill for
-   one-shot reads in event handlers). A plain `measureElement(ref)`
-   that calls the same yoga layout introspection without subscribing
-   would be a small addition.
-
-3. **Devtools** — long-tail; revisit only when users ask.
+1. **Devtools** — long-tail; revisit only when users ask.
 
 ---
 

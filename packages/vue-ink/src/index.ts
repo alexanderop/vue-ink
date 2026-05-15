@@ -1,5 +1,7 @@
 export {
 	render,
+	renderToString,
+	measureElement,
 	useApp,
 	useStdin,
 	useStdout,
@@ -16,6 +18,8 @@ export {
 	kittyFlags,
 	kittyModifiers,
 	type RenderOptions,
+	type RenderToStringOptions,
+	type MeasureElementOutput,
 	type Instance,
 	type RenderMetrics,
 	type InputHandler,

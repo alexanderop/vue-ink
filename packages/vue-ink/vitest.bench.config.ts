@@ -8,11 +8,7 @@ export default defineConfig({
 	root: repoRoot,
 	test: {
 		pool: 'forks',
-		poolOptions: {
-			forks: {
-				singleFork: true,
-			},
-		},
+		maxWorkers: 1,
 		benchmark: {
 			// Only our benches — without this, vitest's default `**/*.bench.ts` glob
 			// picks up the vendored Vue bench files under repos/.
