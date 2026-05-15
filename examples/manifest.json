@@ -46,5 +46,9 @@
 	{
 		"name": "window-size",
 		"description": "useWindowSize — live-reactive terminal columns × rows on resize."
+	},
+	{
+		"name": "task-board",
+		"description": "Kanban board exercising every component + composable: focus, input, paste, window size, stdout/stderr, transforms, borders."
 	}
 ]
