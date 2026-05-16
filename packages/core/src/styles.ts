@@ -5,7 +5,21 @@ import { type ForegroundColorName } from 'ansi-styles';
 import { type LiteralUnion } from 'type-fest';
 import Yoga, { type Node as YogaNode } from 'yoga-layout';
 
+/**
+ * Canonical color type for vue-ink. Accepts any of chalk's 16 ANSI color
+ * names (`'red'`, `'cyan'`, `'gray'`, …) for autocomplete, plus arbitrary
+ * strings for hex (`'#ff00aa'`), `rgb()`, or `hsl()` values. Used by every
+ * color-bearing prop on `<Box>`, `<Text>`, and `Styles`.
+ */
+export type Color = LiteralUnion<ForegroundColorName, string>;
+
 export type Styles = {
+	/**
+	 * Wrap or truncate text when its width exceeds the container. `wrap` (default)
+	 * splits text into multiple lines. `hard` fills each line to the full column
+	 * width, breaking words as necessary. `truncate-*` keeps a single line and
+	 * cuts off the rest.
+	 */
 	readonly textWrap?:
 		| 'wrap'
 		| 'hard'
@@ -14,35 +28,126 @@ export type Styles = {
 		| 'truncate-middle'
 		| 'truncate-start';
 
+	/**
+	 * Controls how the element is positioned.
+	 *
+	 * When `position` is `static`, `top`, `right`, `bottom`, and `left` are ignored.
+	 */
 	readonly position?: 'absolute' | 'relative' | 'static';
+
+	/** Top offset for positioned elements. */
 	readonly top?: number | string;
+
+	/** Right offset for positioned elements. */
 	readonly right?: number | string;
+
+	/** Bottom offset for positioned elements. */
 	readonly bottom?: number | string;
+
+	/** Left offset for positioned elements. */
 	readonly left?: number | string;
 
+	/**
+	 * Margin on all sides. Equivalent to setting `marginTop`, `marginBottom`,
+	 * `marginLeft`, and `marginRight`.
+	 */
 	readonly margin?: number;
+
+	/** Horizontal margin. Equivalent to setting `marginLeft` and `marginRight`. */
 	readonly marginX?: number;
+
+	/** Vertical margin. Equivalent to setting `marginTop` and `marginBottom`. */
 	readonly marginY?: number;
+
+	/** Top margin. */
 	readonly marginTop?: number;
+
+	/** Bottom margin. */
 	readonly marginBottom?: number;
+
+	/** Left margin. */
 	readonly marginLeft?: number;
+
+	/** Right margin. */
 	readonly marginRight?: number;
 
+	/**
+	 * Padding on all sides. Equivalent to setting `paddingTop`, `paddingBottom`,
+	 * `paddingLeft`, and `paddingRight`.
+	 */
 	readonly padding?: number;
+
+	/** Horizontal padding. Equivalent to setting `paddingLeft` and `paddingRight`. */
 	readonly paddingX?: number;
+
+	/** Vertical padding. Equivalent to setting `paddingTop` and `paddingBottom`. */
 	readonly paddingY?: number;
+
+	/** Top padding. */
 	readonly paddingTop?: number;
+
+	/** Bottom padding. */
 	readonly paddingBottom?: number;
+
+	/** Left padding. */
 	readonly paddingLeft?: number;
+
+	/** Right padding. */
 	readonly paddingRight?: number;
 
+	/**
+	 * Defines the ability for a flex item to grow if necessary.
+	 * See [flex-grow](https://css-tricks.com/almanac/properties/f/flex-grow/).
+	 */
 	readonly flexGrow?: number;
+
+	/**
+	 * Specifies the "flex shrink factor", which determines how much the flex item
+	 * will shrink relative to the rest of the flex items in the flex container
+	 * when there isn't enough space on the row.
+	 * See [flex-shrink](https://css-tricks.com/almanac/properties/f/flex-shrink/).
+	 */
 	readonly flexShrink?: number;
+
+	/**
+	 * Establishes the main axis, defining the direction flex items are placed in
+	 * the flex container.
+	 * See [flex-direction](https://css-tricks.com/almanac/properties/f/flex-direction/).
+	 */
 	readonly flexDirection?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
+
+	/**
+	 * Initial size of the flex item, before any available space is distributed
+	 * according to the flex factors.
+	 * See [flex-basis](https://css-tricks.com/almanac/properties/f/flex-basis/).
+	 */
 	readonly flexBasis?: number | string;
+
+	/**
+	 * Defines whether flex items are forced onto a single line or can flow into
+	 * multiple lines.
+	 * See [flex-wrap](https://css-tricks.com/almanac/properties/f/flex-wrap/).
+	 */
 	readonly flexWrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
+
+	/**
+	 * Defines the default behavior for how items are laid out along the cross
+	 * axis (perpendicular to the main axis).
+	 * See [align-items](https://css-tricks.com/almanac/properties/a/align-items/).
+	 */
 	readonly alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch' | 'baseline';
+
+	/**
+	 * Overrides the `alignItems` value for a single flex item.
+	 * See [align-self](https://css-tricks.com/almanac/properties/a/align-self/).
+	 */
 	readonly alignSelf?: 'flex-start' | 'center' | 'flex-end' | 'auto' | 'stretch' | 'baseline';
+
+	/**
+	 * Alignment along the cross axis when there are multiple lines of flex items
+	 * (only relevant with `flexWrap`).
+	 * See [align-content](https://css-tricks.com/almanac/properties/a/align-content/).
+	 */
 	readonly alignContent?:
 		| 'flex-start'
 		| 'flex-end'
@@ -51,6 +156,11 @@ export type Styles = {
 		| 'space-between'
 		| 'space-around'
 		| 'space-evenly';
+
+	/**
+	 * Alignment along the main axis.
+	 * See [justify-content](https://css-tricks.com/almanac/properties/j/justify-content/).
+	 */
 	readonly justifyContent?:
 		| 'flex-start'
 		| 'flex-end'
@@ -59,48 +169,196 @@ export type Styles = {
 		| 'space-evenly'
 		| 'center';
 
+	/**
+	 * Width of the element in spaces. Also accepts a percentage string, which is
+	 * computed relative to the parent's width.
+	 */
 	readonly width?: number | string;
+
+	/**
+	 * Height of the element in lines (rows). Also accepts a percentage string,
+	 * which is computed relative to the parent's height.
+	 */
 	readonly height?: number | string;
+
+	/**
+	 * Minimum width of the element.
+	 * Percentages aren't supported yet; see https://github.com/facebook/yoga/issues/872.
+	 */
 	readonly minWidth?: number | string;
+
+	/**
+	 * Minimum height of the element in lines (rows). Also accepts a percentage
+	 * string, computed relative to the parent's height.
+	 */
 	readonly minHeight?: number | string;
+
+	/**
+	 * Maximum width of the element.
+	 * Percentages aren't supported yet; see https://github.com/facebook/yoga/issues/872.
+	 */
 	readonly maxWidth?: number | string;
+
+	/**
+	 * Maximum height of the element in lines (rows). Also accepts a percentage
+	 * string, computed relative to the parent's height.
+	 */
 	readonly maxHeight?: number | string;
+
+	/**
+	 * Aspect ratio (width / height). Use it with at least one size constraint
+	 * (`width`, `height`, `minHeight`, or `maxHeight`) so the missing dimension
+	 * can be derived.
+	 */
 	readonly aspectRatio?: number;
 
+	/** Set to `none` to hide the element. */
 	readonly display?: 'flex' | 'none';
+
+	/**
+	 * Size of the gap between an element's columns and rows. A shorthand for
+	 * `columnGap` and `rowGap`.
+	 */
 	readonly gap?: number;
+
+	/** Size of the gap between an element's columns. */
 	readonly columnGap?: number;
+
+	/** Size of the gap between an element's rows. */
 	readonly rowGap?: number;
 
+	/**
+	 * Behavior for an element's overflow in both directions.
+	 *
+	 * @default 'visible'
+	 */
 	readonly overflow?: 'visible' | 'hidden';
+
+	/**
+	 * Behavior for an element's overflow in the horizontal direction.
+	 *
+	 * @default 'visible'
+	 */
 	readonly overflowX?: 'visible' | 'hidden';
+
+	/**
+	 * Behavior for an element's overflow in the vertical direction.
+	 *
+	 * @default 'visible'
+	 */
 	readonly overflowY?: 'visible' | 'hidden';
 
+	/**
+	 * Add a border with a specified style. If `borderStyle` is `undefined` (the
+	 * default), no border will be added.
+	 */
 	readonly borderStyle?: keyof Boxes | BoxStyle;
+
+	/**
+	 * Whether the top border is visible.
+	 *
+	 * @default true
+	 */
 	readonly borderTop?: boolean;
+
+	/**
+	 * Whether the bottom border is visible.
+	 *
+	 * @default true
+	 */
 	readonly borderBottom?: boolean;
+
+	/**
+	 * Whether the left border is visible.
+	 *
+	 * @default true
+	 */
 	readonly borderLeft?: boolean;
+
+	/**
+	 * Whether the right border is visible.
+	 *
+	 * @default true
+	 */
 	readonly borderRight?: boolean;
 
-	readonly borderColor?: LiteralUnion<ForegroundColorName, string>;
-	readonly borderTopColor?: LiteralUnion<ForegroundColorName, string>;
-	readonly borderBottomColor?: LiteralUnion<ForegroundColorName, string>;
-	readonly borderLeftColor?: LiteralUnion<ForegroundColorName, string>;
-	readonly borderRightColor?: LiteralUnion<ForegroundColorName, string>;
+	/**
+	 * Change border color. A shorthand for setting `borderTopColor`,
+	 * `borderRightColor`, `borderBottomColor`, and `borderLeftColor`.
+	 */
+	readonly borderColor?: Color;
 
-	readonly borderBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
-	readonly borderTopBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
-	readonly borderBottomBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
-	readonly borderLeftBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
-	readonly borderRightBackgroundColor?: LiteralUnion<ForegroundColorName, string>;
+	/** Change the top border color. Accepts the same values as `color` in `<Text>`. */
+	readonly borderTopColor?: Color;
 
+	/** Change the bottom border color. Accepts the same values as `color` in `<Text>`. */
+	readonly borderBottomColor?: Color;
+
+	/** Change the left border color. Accepts the same values as `color` in `<Text>`. */
+	readonly borderLeftColor?: Color;
+
+	/** Change the right border color. Accepts the same values as `color` in `<Text>`. */
+	readonly borderRightColor?: Color;
+
+	/**
+	 * Change border background color. A shorthand for setting the per-edge
+	 * border-background colors.
+	 */
+	readonly borderBackgroundColor?: Color;
+
+	/** Top border background color. Accepts the same values as `backgroundColor` in `<Text>`. */
+	readonly borderTopBackgroundColor?: Color;
+
+	/** Bottom border background color. Accepts the same values as `backgroundColor` in `<Text>`. */
+	readonly borderBottomBackgroundColor?: Color;
+
+	/** Left border background color. Accepts the same values as `backgroundColor` in `<Text>`. */
+	readonly borderLeftBackgroundColor?: Color;
+
+	/** Right border background color. Accepts the same values as `backgroundColor` in `<Text>`. */
+	readonly borderRightBackgroundColor?: Color;
+
+	/**
+	 * Dim the border color. A shorthand for setting all four per-edge
+	 * `border*DimColor` flags.
+	 *
+	 * @default false
+	 */
 	readonly borderDimColor?: boolean;
+
+	/**
+	 * Dim the top border color.
+	 *
+	 * @default false
+	 */
 	readonly borderTopDimColor?: boolean;
+
+	/**
+	 * Dim the bottom border color.
+	 *
+	 * @default false
+	 */
 	readonly borderBottomDimColor?: boolean;
+
+	/**
+	 * Dim the left border color.
+	 *
+	 * @default false
+	 */
 	readonly borderLeftDimColor?: boolean;
+
+	/**
+	 * Dim the right border color.
+	 *
+	 * @default false
+	 */
 	readonly borderRightDimColor?: boolean;
 
-	readonly backgroundColor?: LiteralUnion<ForegroundColorName, string>;
+	/**
+	 * Background color for the element. Accepts the same values as `color` in
+	 * the `<Text>` component.
+	 */
+	readonly backgroundColor?: Color;
 };
 
 const POSITION_EDGES = [

@@ -2,12 +2,16 @@ import { defineComponent, h, type PropType, type Slot, type VNode } from 'vue';
 import type { Styles } from '@vue-ink/core';
 
 export type StaticProps = {
+	/** Items to render via the default slot. */
 	items: unknown[];
+	/** Styles applied to the container element. See `<Box>` for supported properties. */
 	style?: Styles;
 };
 
 export type StaticSlotArgs<T = unknown> = {
+	/** The current item. */
 	item: T;
+	/** The current item's index in `items`. */
 	index: number;
 };
 

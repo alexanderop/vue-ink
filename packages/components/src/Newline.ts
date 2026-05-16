@@ -2,6 +2,11 @@ import { defineComponent, h } from 'vue';
 import { useTextHost } from './text-context.ts';
 
 export type NewlineProps = {
+	/**
+	 * Number of newlines to insert.
+	 *
+	 * @default 1
+	 */
 	count?: number;
 };
 
