@@ -13,7 +13,8 @@ The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
 Portions of this software are derived from Ink (https://github.com/vadimdemedes/ink),
-which is also licensed under the MIT License, Copyright (c) Vadim Demedes.
+which is also licensed under the MIT License,
+Copyright (c) Vadym Demedes <vadimdemedes@hey.com> and Sindre Sorhus <sindresorhus@gmail.com>.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
