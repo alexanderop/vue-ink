@@ -40,6 +40,10 @@ export {
 	type Key,
 	type KittyFlagName,
 	type KittyKeyboardOptions,
+	// Ink-compat type aliases.
+	type WindowSize,
+	type AnimationResult,
+	type DOMElement,
 } from '@vue-ink/renderer';
 export {
 	Box,

@@ -1,8 +1,27 @@
 {
-	"name": "vue-ink",
+	"name": "vueink",
 	"version": "0.0.1",
-	"description": "Vue 3 port of Ink — terminal renderer for Vue components",
+	"description": "Vue 3 port of Ink — build interactive terminal UIs with Vue components.",
 	"license": "MIT",
+	"author": "Alexander Opalic <opalic@gmx.net>",
+	"homepage": "https://github.com/alexanderop/vue-ink#readme",
+	"bugs": "https://github.com/alexanderop/vue-ink/issues",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/alexanderop/vue-ink.git",
+		"directory": "packages/vue-ink"
+	},
+	"keywords": [
+		"vue",
+		"vue3",
+		"ink",
+		"terminal",
+		"cli",
+		"tui",
+		"yoga-layout",
+		"react-ink",
+		"vue-ink"
+	],
 	"type": "module",
 	"main": "./src/index.ts",
 	"types": "./src/index.ts",
@@ -12,22 +31,48 @@
 			"default": "./src/index.ts"
 		}
 	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"publishConfig": {
+		"main": "./dist/index.js",
+		"types": "./dist/index.d.ts",
+		"exports": {
+			".": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			}
+		}
+	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"build": "tsc --noEmit",
+		"build": "tsc -p tsconfig.build.json",
+		"clean": "rm -rf dist",
 		"test": "pnpm typecheck && vitest run",
 		"test:coverage": "vitest run --coverage",
-		"bench": "vitest bench --run --config vitest.bench.config.ts"
+		"bench": "vitest bench --run --config vitest.bench.config.ts",
+		"prepublishOnly": "pnpm run clean && pnpm run build"
 	},
 	"dependencies": {
-		"@vue-ink/components": "workspace:*",
-		"@vue-ink/renderer": "workspace:*"
+		"@vue-ink/components": "workspace:^",
+		"@vue-ink/renderer": "workspace:^"
+	},
+	"peerDependencies": {
+		"@vue/devtools": ">=7.0.0",
+		"vue": "^3.5.0"
+	},
+	"peerDependenciesMeta": {
+		"@vue/devtools": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@types/node": "catalog:",
 		"@vitest/coverage-v8": "catalog:",
-		"@vue-ink/core": "workspace:*",
-		"@vue-ink/testing-library": "workspace:*",
+		"@vue-ink/core": "workspace:^",
+		"@vue-ink/testing-library": "workspace:^",
 		"@vue/compiler-sfc": "^3.5.13",
 		"boxen": "^8.0.1",
 		"chalk": "^5.6.2",

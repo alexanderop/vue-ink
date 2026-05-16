@@ -78,7 +78,7 @@ const findRootNode = (node: DOMElement | null): DOMElement | null => {
  * ```vue
  * <script setup lang="ts">
  * import { useTemplateRef } from 'vue';
- * import { Box, Text, useBoxMetrics } from 'vue-ink';
+ * import { Box, Text, useBoxMetrics } from 'vueink';
  *
  * const boxRef = useTemplateRef('box');
  * const { width, height, hasMeasured } = useBoxMetrics(boxRef);

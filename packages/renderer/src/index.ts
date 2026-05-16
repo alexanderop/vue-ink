@@ -44,7 +44,14 @@ export {
 	type CursorPosition,
 	type UseCursorReturn,
 	type Key,
+	// Ink-compat aliases (additive — porters' `import { WindowSize,
+	// AnimationResult } from 'vue-ink'` keeps working).
+	type WindowSize,
+	type AnimationResult,
 } from './composables/index.ts';
+// Re-export `DOMElement` from core so porters can `import type { DOMElement }
+// from 'vue-ink'` without reaching into `@vue-ink/core` directly.
+export type { DOMElement } from '@vue-ink/core';
 export {
 	kittyFlags,
 	kittyModifiers,

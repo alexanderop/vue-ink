@@ -323,8 +323,12 @@ composables; surface a real error.
 
 `useFocus` enables raw mode while focused (so Tab cycling works) and
 releases when unfocused. If `isRawModeSupported` is false (no TTY),
-`useInput`/`useFocus` throw. Test fixtures must use `createFakeStdin({
-isTTY: true, supportsRawMode: true })`.
+`useInput`/`useFocus` throw — **but only when they actually try to
+attach**. `useInput(h, { isActive: false })` on a non-TTY stdin is a
+no-op (matches ink). The throw fires lazily inside `onAttach`, so a
+ref/getter `isActive` that's false at mount time but flips true later
+will throw at flip time. Test fixtures that need a guaranteed-not-throw
+path can pin `isActive: false` regardless of TTY support.
 
 ## Reconciler landmines (renderer extensions only)
 
@@ -452,6 +456,32 @@ Numbered, ordered by frequency of hitting them:
     `flushVueOnly` drains Vue's microtask queue only; `flush` also
     waits out the paint throttle window. Pick the right one based on
     what you're asserting.
+
+## Devtools
+
+ink ships a `DEV=true` gate that lazily loads `react-devtools-core` and
+connects to `npx react-devtools` on port 8097. vue-ink mirrors this 1:1
+with `@vue/devtools` on port 8098 — same opt-in flag, same probe-then-
+warn UX. Files: `packages/renderer/src/devtools.ts` (parallel to
+`repos/ink/src/devtools.ts`) and `packages/renderer/src/devtoolsWindowPolyfill.ts`
+(parallel to `repos/ink/src/devtools-window-polyfill.ts`).
+
+Two non-obvious bits:
+
+1. **`__VUE_PROD_DEVTOOLS__` must be true before mount in prod builds.**
+   The polyfill sets it on `globalThis`. In dev builds (`NODE_ENV !==
+   "production"`) `devtoolsInitApp` runs unconditionally, so the flag
+   only matters for prod consumers. See
+   `repos/core/packages/runtime-core/src/devtools.ts`.
+2. **`render()` is sync; we fire-and-forget the dynamic import.** Vue's
+   devtools hook buffers `emit()` calls into an array and replays them
+   when `setDevtoolsHook` lands (`runtime-core/src/devtools.ts:52-87`),
+   so the connection arriving milliseconds after the first mount still
+   reports the full tree.
+
+`@vue/devtools` is an optional peer dep on `packages/{renderer,vue-ink}/package.json`.
+Consumers opt in with `pnpm add -D @vue/devtools` and run `pnpm dlx
+@vue/devtools` for the GUI.
 
 ## What's NOT yet ported (gaps you'll hit)
 

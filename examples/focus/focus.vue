@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
 import {
 	Box,
@@ -7,13 +7,14 @@ import {
 	useInput,
 	useFocus,
 	useFocusManager,
-} from 'vue-ink';
+} from 'vueink';
+import type { Key } from 'vueink';
 
 const { exit } = useApp();
 const manager = useFocusManager();
 
-const messages = ref([]);
-const log = (line) => {
+const messages = ref<string[]>([]);
+const log = (line: string) => {
 	messages.value = [...messages.value, line].slice(-4);
 };
 
@@ -30,7 +31,7 @@ const buttons = computed(() => [
 	{ label: 'Account', focus: account },
 ]);
 
-useInput((input, key) => {
+useInput((input: string, key: Key) => {
 	if (input === 'q' || key.escape) {
 		exit();
 		return;

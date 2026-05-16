@@ -21,8 +21,8 @@ const pushModeRegex = new RegExp(`${'\\u001b'}\\[>\\d+u`);
 
 describe("kitty keyboard — mode: 'auto'", () => {
 	it('writes the detection query (ESC [ ? u) on mount, NOT the push-mode escape', async () => {
-		const stdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdin = createFakeStdin({ isTTY: true });
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const Demo = defineComponent({
 			setup: () => () => h('ink-text', null, 'x'),
 		});
@@ -42,8 +42,8 @@ describe("kitty keyboard — mode: 'auto'", () => {
 	});
 
 	it('writes the push-mode escape after the terminal answers the query', async () => {
-		const stdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdin = createFakeStdin({ isTTY: true });
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const Demo = defineComponent({
 			setup: () => () => h('ink-text', null, 'x'),
 		});
@@ -68,8 +68,8 @@ describe("kitty keyboard — mode: 'auto'", () => {
 	});
 
 	it('does NOT write the push-mode escape if no response arrives (silent timeout)', async () => {
-		const stdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdin = createFakeStdin({ isTTY: true });
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const Demo = defineComponent({
 			setup: () => () => h('ink-text', null, 'x'),
 		});
@@ -91,8 +91,8 @@ describe("kitty keyboard — mode: 'auto'", () => {
 	});
 
 	it('skips auto-detect entirely when interactive is false', async () => {
-		const stdin = createFakeStdin();
-		const stdout = createCaptureStream(20);
+		const stdin = createFakeStdin({ isTTY: true });
+		const stdout = createCaptureStream(20, { isTTY: true });
 		const Demo = defineComponent({
 			setup: () => () => h('ink-text', null, 'x'),
 		});

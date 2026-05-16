@@ -1,0 +1,1 @@
+{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../src/composables/useCursor/index.ts"],"names":[],"mappings":"AAGA,MAAM,MAAM,cAAc,GAAG;IAC5B,CAAC,EAAE,MAAM,CAAC;IACV,CAAC,EAAE,MAAM,CAAC;CACV,CAAC;AAEF,MAAM,WAAW,eAAe;IAC/B,iBAAiB,EAAE,CAAC,QAAQ,EAAE,cAAc,GAAG,SAAS,KAAK,IAAI,CAAC;CAClE;AAED;;;;;;;;;;GAUG;AACH,eAAO,MAAM,SAAS,QAAO,eAe5B,CAAC"}

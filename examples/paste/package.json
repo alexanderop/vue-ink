@@ -8,7 +8,7 @@
 	},
 	"dependencies": {
 		"vue": "catalog:",
-		"vue-ink": "workspace:*"
+		"vueink": "workspace:*"
 	},
 	"devDependencies": {
 		"@vue/compiler-sfc": "^3.5.13",

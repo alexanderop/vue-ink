@@ -1,10 +1,11 @@
-<script setup>
-import { Box, Text, useApp, useInput, useWindowSize } from 'vue-ink';
+<script setup lang="ts">
+import { Box, Text, useApp, useInput, useWindowSize } from 'vueink';
+import type { Key } from 'vueink';
 
 const { columns, rows } = useWindowSize();
 const { exit } = useApp();
 
-useInput((input, key) => {
+useInput((input: string, key: Key) => {
 	if (input === 'q' || key.escape) exit();
 });
 </script>

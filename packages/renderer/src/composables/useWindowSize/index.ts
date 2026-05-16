@@ -7,6 +7,16 @@ export interface UseWindowSizeReturn {
 	rows: ShallowRef<number>;
 }
 
+/**
+ * Ink-compat alias: plain `{ columns, rows }` of numbers. Useful for porters
+ * who type intermediate values (`function setSize(s: WindowSize)`) — distinct
+ * from {@link UseWindowSizeReturn}, which wraps each dim in a `ShallowRef`.
+ */
+export interface WindowSize {
+	readonly columns: number;
+	readonly rows: number;
+}
+
 const DEFAULT_COLUMNS = 80;
 const DEFAULT_ROWS = 24;
 

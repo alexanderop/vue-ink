@@ -6,6 +6,7 @@ export { useIsScreenReaderEnabled } from './useIsScreenReaderEnabled/index.ts';
 export {
 	useWindowSize,
 	type UseWindowSizeReturn,
+	type WindowSize,
 } from './useWindowSize/index.ts';
 export {
 	useInput,
@@ -31,6 +32,7 @@ export {
 	useAnimation,
 	type UseAnimationOptions,
 	type UseAnimationReturn,
+	type AnimationResult,
 } from './useAnimation/index.ts';
 export {
 	useBoxMetrics,

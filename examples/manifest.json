@@ -50,5 +50,21 @@
 	{
 		"name": "task-board",
 		"description": "Kanban board exercising every component + composable: focus, input, paste, window size, stdout/stderr, transforms, borders."
+	},
+	{
+		"name": "dashboard",
+		"description": "Ops dashboard — animated sparklines (CPU/mem/net), progress bars, spinner, live log stream. useAnimation showcase."
+	},
+	{
+		"name": "chat",
+		"description": "Chat REPL with blinking caret (useCursor), typing indicator, slash commands, paste support."
+	},
+	{
+		"name": "test-runner",
+		"description": "Simulated jest-style runner — completed tests stream into scrollback via <Static>, live progress block stays pinned."
+	},
+	{
+		"name": "snake",
+		"description": "Real-time snake game — useAnimation game loop, arrow/hjkl/wasd input, pause + restart, score tracking."
 	}
 ]

@@ -60,6 +60,28 @@ describe('useInput', () => {
 		expect(() => withSetup(() => useInput(() => {}), { stdin })).toThrow(/raw mode/i);
 	});
 
+	it('does NOT throw when isRawModeSupported is false but isActive is false', () => {
+		const stdin = buildStdin({ isRawModeSupported: false });
+		expect(() =>
+			withSetup(() => useInput(() => {}, { isActive: false }), { stdin }),
+		).not.toThrow();
+	});
+
+	it('does NOT throw when isRawModeSupported is false but isActive getter is false', () => {
+		const stdin = buildStdin({ isRawModeSupported: false });
+		expect(() =>
+			withSetup(() => useInput(() => {}, { isActive: () => false }), { stdin }),
+		).not.toThrow();
+	});
+
+	it('throws when isActive flips from false to true on unsupported stdin', async () => {
+		const stdin = buildStdin({ isRawModeSupported: false });
+		const isActive = ref(false);
+		const { flush } = withSetup(() => useInput(() => {}, { isActive }), { stdin });
+		isActive.value = true;
+		await expect(flush()).rejects.toThrow(/raw mode/i);
+	});
+
 	it('throws when not mounted inside vue-ink render()', () => {
 		expect(() => withSetup(() => useInput(() => {}))).toThrow(/useInput/);
 	});

@@ -7,6 +7,7 @@ import {
 	type Styles,
 } from '@vue-ink/core';
 import { type Boxes, type BoxStyle } from 'cli-boxes';
+import { ACCESSIBILITY_CONTEXT_KEY } from './accessibility-context.ts';
 import { BACKGROUND_COLOR_INJECT_KEY } from './background-context.ts';
 
 export type BoxProps = Omit<Styles, 'textWrap'> & {
@@ -148,6 +149,11 @@ const Box = defineComponent({
 		// set its own — mirrors ink's behaviour where a middle non-bg Box does
 		// not break inheritance for descendant Text nodes.
 		const parentBackground = inject(BACKGROUND_COLOR_INJECT_KEY, null);
+		// Renderer-provided SR context. When SR is on AND `aria-hidden` is set,
+		// Box short-circuits to render nothing — mirrors ink, which returns
+		// null so the subtree never enters the reconciler. Yoga skips the
+		// layout work and child onMounted hooks don't fire.
+		const accessibilityCtx = inject(ACCESSIBILITY_CONTEXT_KEY, null);
 		provide(
 			BACKGROUND_COLOR_INJECT_KEY,
 			() => props.backgroundColor ?? parentBackground?.(),
@@ -166,6 +172,12 @@ const Box = defineComponent({
 		// accessibility metadata, not Yoga style.
 		const ariaKeys = new Set(['ariaLabel', 'ariaHidden', 'ariaRole', 'ariaState']);
 		return () => {
+			if (
+				props.ariaHidden &&
+				(accessibilityCtx?.isScreenReaderEnabled.value ?? false)
+			) {
+				return null;
+			}
 			const style: Styles = {
 				flexWrap: 'nowrap',
 				flexDirection: 'row',

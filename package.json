@@ -8,11 +8,16 @@
 	"scripts": {
 		"typecheck": "pnpm -r typecheck",
 		"test": "pnpm -r test",
-		"test:coverage": "pnpm --filter vue-ink test:coverage",
-		"bench": "pnpm --filter vue-ink bench",
-		"build": "pnpm -r build",
+		"test:coverage": "pnpm --filter vueink test:coverage",
+		"bench": "pnpm --filter vueink bench",
+		"build": "pnpm -r --filter \"./packages/*\" --filter \"!@vue-ink/docs\" build",
+		"clean": "pnpm -r --filter \"./packages/*\" clean",
+		"docs:dev": "pnpm --filter @vue-ink/docs dev",
+		"docs:build": "pnpm --filter @vue-ink/docs build",
+		"docs:preview": "pnpm --filter @vue-ink/docs preview",
 		"lint": "vp lint",
-		"vueink": "node --import=tsx packages/vue-ink/bin/vueink.ts"
+		"vueink": "node --import=tsx packages/vue-ink/bin/vueink.ts",
+		"release": "pnpm run build && pnpm publish -r --access public --filter \"./packages/*\""
 	},
 	"devDependencies": {
 		"@vitest/coverage-v8": "catalog:",

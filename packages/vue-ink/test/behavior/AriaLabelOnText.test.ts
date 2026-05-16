@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { defineComponent, h } from 'vue';
+import { describe, it, expect, vi } from 'vitest';
+import { defineComponent, h, onMounted } from 'vue';
 import { render } from '@vue-ink/testing-library';
+import { renderToString } from '@vue-ink/renderer';
 import { Box, Text } from '../../src/index.ts';
 
 // Tests aria-label / aria-hidden specifically on the <Text> component. The
@@ -55,5 +56,49 @@ describe('screen-reader aria-label / aria-hidden on Text', () => {
 				),
 			),
 		).toBe('button: alt');
+	});
+
+	// Parity with ink: when SR is on, Text replaces its children with the
+	// aria-label entirely. Children should not be rendered/mounted, so any
+	// side effects inside the slot (e.g. onMounted) do not fire.
+	it('aria-label replaces the child subtree (no mount side effects)', () => {
+		const onMount = vi.fn();
+		const Child = defineComponent({
+			setup() {
+				onMounted(onMount);
+				return () => 'visible';
+			},
+		});
+
+		const out = renderToString(
+			defineComponent({
+				setup: () => () => h(Text, { 'aria-label': 'foo' }, () => h(Child)),
+			}),
+			{ columns: 80, isScreenReaderEnabled: true },
+		);
+
+		expect(out).toContain('foo');
+		expect(out).not.toContain('visible');
+		expect(onMount).not.toHaveBeenCalled();
+	});
+
+	it('renders the child subtree normally when SR is off', () => {
+		const onMount = vi.fn();
+		const Child = defineComponent({
+			setup() {
+				onMounted(onMount);
+				return () => 'visible';
+			},
+		});
+
+		const out = renderToString(
+			defineComponent({
+				setup: () => () => h(Text, { 'aria-label': 'foo' }, () => h(Child)),
+			}),
+			{ columns: 80, isScreenReaderEnabled: false },
+		);
+
+		expect(out).toContain('visible');
+		expect(onMount).toHaveBeenCalledTimes(1);
 	});
 });

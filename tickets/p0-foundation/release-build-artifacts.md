@@ -26,7 +26,7 @@ For each package (`@vue-ink/core`, `@vue-ink/renderer`, `@vue-ink/components`, `
 
 ## Acceptance criteria
 - `pnpm build` produces `dist/` with `.js` + `.d.ts` + sourcemaps for each package.
-- `node --eval "import('vue-ink').then(m => console.log(Object.keys(m)))"` (run from outside the workspace, with `vue-ink` installed via `pnpm pack`'s tarball) lists at least `render`, `useApp`, `useInput`, `useFocus`, `Box`, `Text`, plus the public types.
+- `node --eval "import('vueink').then(m => console.log(Object.keys(m)))"` (run from outside the workspace, with `vue-ink` installed via `pnpm pack`'s tarball) lists at least `render`, `useApp`, `useInput`, `useFocus`, `Box`, `Text`, plus the public types.
 - `"sideEffects"` flags verified via a Vite tree-shake test: importing only `useApp` from `vue-ink` drops `<Box>`/`<Text>` from the bundle.
 - README quick-start works copy-pasted on a fresh project (covered by the loader story — see also: separate ticket to publish a `vue-ink/loader`).
 

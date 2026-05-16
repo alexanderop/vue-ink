@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { parse, compileScript, compileTemplate } from '@vue/compiler-sfc';
+import { transformSync } from 'esbuild';
 
 export const load = async (url, context, nextLoad) => {
 	if (!url.endsWith('.vue')) {
@@ -18,7 +19,17 @@ export const load = async (url, context, nextLoad) => {
 		genDefaultAs: '__sfc__',
 	});
 
-	const scriptCode = scriptResult.content;
+	const scriptLang = descriptor.scriptSetup?.lang ?? descriptor.script?.lang;
+	const isTs = scriptLang === 'ts' || scriptLang === 'tsx';
+
+	const scriptCode = isTs
+		? transformSync(scriptResult.content, {
+				loader: scriptLang,
+				format: 'esm',
+				target: 'es2022',
+				sourcefile: filePath,
+			}).code
+		: scriptResult.content;
 
 	let templateCode = '';
 	if (descriptor.template) {

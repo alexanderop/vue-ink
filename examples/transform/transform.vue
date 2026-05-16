@@ -1,11 +1,12 @@
-<script setup>
-import { Box, Text, Transform } from 'vue-ink';
+<script setup lang="ts">
+import { Box, Text, Transform } from 'vueink';
 
-const upper = (text) => text.toUpperCase();
-const reverse = (text) => [...text].reverse().join('');
-const bracket = (text) => `[ ${text.trim()} ]`;
+const upper = (text: string) => text.toUpperCase();
+const reverse = (text: string) => [...text].reverse().join('');
+const bracket = (text: string) => `[ ${text.trim()} ]`;
 // the transform is called once per line; the second arg is the line index
-const numbered = (text, index) => `${String(index + 1).padStart(2, ' ')}  ${text}`;
+const numbered = (text: string, index: number) =>
+	`${String(index + 1).padStart(2, ' ')}  ${text}`;
 
 const poem = ['roses are red', 'violets are blue', 'transforms run', 'on every view'].join('\n');
 </script>

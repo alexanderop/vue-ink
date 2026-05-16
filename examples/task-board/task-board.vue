@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import {
 	Box,
@@ -16,7 +16,10 @@ import {
 	useStderr,
 	useWindowSize,
 	useIsScreenReaderEnabled,
-} from 'vue-ink';
+} from 'vueink';
+import type { Key } from 'vueink';
+
+type ColumnId = 'todo' | 'doing' | 'done';
 
 const { exit } = useApp();
 const { columns, rows } = useWindowSize();
@@ -26,31 +29,31 @@ const stderr = useStderr();
 const isScreenReader = useIsScreenReaderEnabled();
 const manager = useFocusManager();
 
-const columnIds = ['todo', 'doing', 'done'];
-const columnLabels = { todo: 'TODO', doing: 'DOING', done: 'DONE' };
-const columnColors = { todo: 'red', doing: 'yellow', done: 'green' };
+const columnIds: ColumnId[] = ['todo', 'doing', 'done'];
+const columnLabels: Record<ColumnId, string> = { todo: 'TODO', doing: 'DOING', done: 'DONE' };
+const columnColors: Record<ColumnId, string> = { todo: 'red', doing: 'yellow', done: 'green' };
 
-const focusables = {
+const focusables: Record<ColumnId, ReturnType<typeof useFocus>> = {
 	todo: useFocus({ id: 'todo', autoFocus: true }),
 	doing: useFocus({ id: 'doing' }),
 	done: useFocus({ id: 'done' }),
 };
 
-const board = reactive({
+const board = reactive<Record<ColumnId, string[]>>({
 	todo: ['ship vue-ink v0.1', 'write more demos', 'sleep more'],
 	doing: ['port useFocus tests'],
 	done: ['migrate to /composables folder'],
 });
 
-const cursor = reactive({ todo: 0, doing: 0, done: 0 });
+const cursor = reactive<Record<ColumnId, number>>({ todo: 0, doing: 0, done: 0 });
 const lastAction = ref('start moving tasks around');
 const pasteMode = ref(false);
 const lastPasteSize = ref(0);
 const taskCounter = ref(1);
 
-const activeId = computed(() => {
+const activeId = computed<ColumnId>(() => {
 	const id = manager.activeId.value;
-	return id && columnIds.includes(id) ? id : 'todo';
+	return id && (columnIds as string[]).includes(id) ? (id as ColumnId) : 'todo';
 });
 
 const totals = computed(() => ({
@@ -60,16 +63,16 @@ const totals = computed(() => ({
 	all: board.todo.length + board.doing.length + board.done.length,
 }));
 
-const log = (line) => {
+const log = (line: string) => {
 	lastAction.value = line;
 };
 
-const clamp = (col) => {
+const clamp = (col: ColumnId) => {
 	const max = Math.max(board[col].length - 1, 0);
 	cursor[col] = Math.min(Math.max(cursor[col], 0), max);
 };
 
-const moveTask = (from, dir) => {
+const moveTask = (from: ColumnId, dir: -1 | 1) => {
 	if (board[from].length === 0) return;
 	const idx = columnIds.indexOf(from);
 	const targetIdx = idx + dir;
@@ -82,7 +85,7 @@ const moveTask = (from, dir) => {
 	log(`moved "${task}" → ${columnLabels[to]}`);
 };
 
-const addTask = (text) => {
+const addTask = (text: string) => {
 	const trimmed = text.trim();
 	const nextNumber = taskCounter.value;
 	taskCounter.value += 1;
@@ -105,7 +108,7 @@ const removeTask = () => {
 	log(`removed "${task}"`);
 };
 
-usePaste((text) => {
+usePaste((text: string) => {
 	if (!pasteMode.value) {
 		log('paste ignored — press p to enable paste mode');
 		return;
@@ -118,7 +121,7 @@ usePaste((text) => {
 	lastPasteSize.value = text.length;
 });
 
-useInput((input, key) => {
+useInput((input: string, key: Key) => {
 	if (input === 'q' || key.escape) {
 		exit();
 		return;
@@ -174,8 +177,8 @@ useInput((input, key) => {
 	}
 });
 
-const upper = (text) => text.toUpperCase();
-const banner = (text, idx) => (idx === 0 ? `┃ ${text}` : `  ${text}`);
+const upper = (text: string) => text.toUpperCase();
+const banner = (text: string, idx: number) => (idx === 0 ? `┃ ${text}` : `  ${text}`);
 </script>
 
 <template>

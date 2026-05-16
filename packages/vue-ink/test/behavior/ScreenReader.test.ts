@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { defineComponent, h } from 'vue';
+import { describe, it, expect, vi } from 'vitest';
+import { defineComponent, h, onMounted } from 'vue';
 import { render } from '@vue-ink/testing-library';
+import { renderToString } from '@vue-ink/renderer';
 import { Box, Text, Transform } from '../../src/index.ts';
 
 // Ported from repos/ink/test/screen-reader.tsx. The visual renderer is
@@ -379,5 +380,69 @@ describe('screen-reader', () => {
 				),
 			),
 		).toBe('hello');
+	});
+
+	// Parity with ink: `<Box aria-hidden>` returns null when SR is on, so the
+	// subtree is never mounted. No Yoga layout, no lifecycle hooks for children.
+	describe('aria-hidden short-circuit on Box', () => {
+		it('aria-hidden Box does not mount its children when SR is on', () => {
+			const onMount = vi.fn();
+			const Child = defineComponent({
+				setup() {
+					onMounted(onMount);
+					return () => h(Text, null, () => 'hidden');
+				},
+			});
+
+			const out = renderToString(
+				defineComponent({
+					setup: () => () => h(Box, { 'aria-hidden': true }, () => h(Child)),
+				}),
+				{ columns: 80, isScreenReaderEnabled: true },
+			);
+
+			expect(out.trim()).toBe('');
+			expect(onMount).not.toHaveBeenCalled();
+		});
+
+		it('aria-hidden Box mounts children normally when SR is off', () => {
+			const onMount = vi.fn();
+			const Child = defineComponent({
+				setup() {
+					onMounted(onMount);
+					return () => h(Text, null, () => 'hidden');
+				},
+			});
+
+			const out = renderToString(
+				defineComponent({
+					setup: () => () => h(Box, { 'aria-hidden': true }, () => h(Child)),
+				}),
+				{ columns: 80, isScreenReaderEnabled: false },
+			);
+
+			expect(out).toContain('hidden');
+			expect(onMount).toHaveBeenCalledTimes(1);
+		});
+
+		it('Box without aria-hidden mounts children when SR is on', () => {
+			const onMount = vi.fn();
+			const Child = defineComponent({
+				setup() {
+					onMounted(onMount);
+					return () => h(Text, null, () => 'visible');
+				},
+			});
+
+			const out = renderToString(
+				defineComponent({
+					setup: () => () => h(Box, null, () => h(Child)),
+				}),
+				{ columns: 80, isScreenReaderEnabled: true },
+			);
+
+			expect(out).toContain('visible');
+			expect(onMount).toHaveBeenCalledTimes(1);
+		});
 	});
 });

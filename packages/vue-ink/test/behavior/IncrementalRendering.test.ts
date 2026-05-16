@@ -132,9 +132,84 @@ describe('incrementalRendering', () => {
 		await flush();
 
 		const update = stdout.frames.slice(framesBeforeShrink).join('');
-		expect(update).toContain(eraseLines(2));
+		// dropped = prevVisible - nextVisible = 2; plus the trailing-newline
+		// slot the cursor parked on after the previous paint = 3 erases total.
+		// Mirrors ink's log-update.ts:265-274.
+		expect(update).toContain(eraseLines(3));
 		// Surviving prefix should not be re-emitted under incremental.
 		expect(update).not.toContain('Line 1');
+		instance.unmount();
+	});
+
+	it('shrink: erase happens BEFORE any rewrite/cursor-move (correct byte order)', async () => {
+		// Regression: prior buildIncrementalDiff wrote new lines first and then
+		// called eraseLines, which erased the just-written rows instead of the
+		// dropped tail. The byte order must be:
+		//   (optional returnPrefix) -> eraseLines(dropped+1) -> cursorUp(nextVisible) -> rewrite/cursorNextLine
+		const stdout = createCaptureStream(40);
+		const stdin = createFakeStdin();
+		const showAll = ref(true);
+		const Demo = defineComponent({
+			setup() {
+				return () =>
+					h(Box, { flexDirection: 'column' }, () =>
+						showAll.value
+							? [
+									h(Text, null, () => 'Line 1'),
+									h(Text, null, () => 'Line 2'),
+									h(Text, null, () => 'Line 3'),
+								]
+							: [h(Text, null, () => 'Line 1')],
+					);
+			},
+		});
+		const instance = renderIncremental(Demo, stdout, stdin);
+		await flush();
+		const framesBeforeShrink = stdout.frames.length;
+
+		showAll.value = false;
+		await flush();
+
+		const update = stdout.frames.slice(framesBeforeShrink).join('');
+		const eraseIdx = update.indexOf(eraseLines(3));
+		const cursorNextLineIdx = update.indexOf(cursorNextLine);
+		expect(eraseIdx).toBeGreaterThanOrEqual(0);
+		expect(cursorNextLineIdx).toBeGreaterThanOrEqual(0);
+		// eraseLines MUST come before any per-row work (cursorNextLine, content,
+		// cursorTo). Otherwise the erase wipes new content and leaves stale rows.
+		expect(eraseIdx).toBeLessThan(cursorNextLineIdx);
+	});
+
+	it('shrink to zero erases the entire previous frame', async () => {
+		const stdout = createCaptureStream(40);
+		const stdin = createFakeStdin();
+		const show = ref(true);
+		const Demo = defineComponent({
+			setup() {
+				return () =>
+					h(Box, { flexDirection: 'column' }, () =>
+						show.value
+							? [
+									h(Text, null, () => 'Line 1'),
+									h(Text, null, () => 'Line 2'),
+								]
+							: [],
+					);
+			},
+		});
+		const instance = renderIncremental(Demo, stdout, stdin);
+		await flush();
+		const framesBeforeShrink = stdout.frames.length;
+
+		show.value = false;
+		await flush();
+
+		const update = stdout.frames.slice(framesBeforeShrink).join('');
+		// dropped = 2, plus trailing-newline park slot = eraseLines(3).
+		expect(update).toContain(eraseLines(3));
+		// Nothing from the previous frame should be re-emitted.
+		expect(update).not.toContain('Line 1');
+		expect(update).not.toContain('Line 2');
 		instance.unmount();
 	});
 

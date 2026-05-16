@@ -1,5 +1,5 @@
-<script setup>
-import { Box, Text, Spacer, Newline } from 'vue-ink';
+<script setup lang="ts">
+import { Box, Text, Spacer, Newline } from 'vueink';
 </script>
 
 <template>

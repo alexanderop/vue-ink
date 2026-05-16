@@ -78,8 +78,12 @@ export const APP_CONTEXT_KEY: InjectionKey<AppContext> = Symbol('vue-ink.app');
 export const STDIN_CONTEXT_KEY: InjectionKey<StdinContext> = Symbol('vue-ink.stdin');
 export const STDOUT_CONTEXT_KEY: InjectionKey<StdoutContext> = Symbol('vue-ink.stdout');
 export const STDERR_CONTEXT_KEY: InjectionKey<StderrContext> = Symbol('vue-ink.stderr');
+// Shared with `@vue-ink/components` via the global Symbol registry so Box and
+// Text can inject the SR flag without forcing components to depend on the
+// renderer (and without moving the key into core, which is intentionally
+// Vue-free). Both sides call `Symbol.for(SR_KEY)` and get the same identity.
 export const ACCESSIBILITY_CONTEXT_KEY: InjectionKey<AccessibilityContext> =
-	Symbol('vue-ink.accessibility');
+	Symbol.for('vue-ink.accessibility') as InjectionKey<AccessibilityContext>;
 export const FOCUS_CONTEXT_KEY: InjectionKey<FocusContext> = Symbol('vue-ink.focus');
 export const ANIMATION_CONTEXT_KEY: InjectionKey<AnimationContext> =
 	Symbol('vue-ink.animation');

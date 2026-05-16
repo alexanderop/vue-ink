@@ -1,17 +1,18 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
-import { Box, Text, useApp, useInput, usePaste } from 'vue-ink';
+import { Box, Text, useApp, useInput, usePaste } from 'vueink';
+import type { Key } from 'vueink';
 
 const lastPaste = ref('');
 const pasteCount = ref(0);
 const { exit } = useApp();
 
-usePaste((text) => {
+usePaste((text: string) => {
 	lastPaste.value = text;
 	pasteCount.value += 1;
 });
 
-useInput((input, key) => {
+useInput((input: string, key: Key) => {
 	if (input === 'q' || key.escape) exit();
 });
 </script>

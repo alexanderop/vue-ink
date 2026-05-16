@@ -1,6 +1,7 @@
 import { computed, defineComponent, h, inject, type PropType, type VNodeChild } from 'vue';
 import chalk from 'chalk';
 import { colorize, type AccessibilityInfo, type Styles } from '@vue-ink/core';
+import { ACCESSIBILITY_CONTEXT_KEY } from './accessibility-context.ts';
 import { BACKGROUND_COLOR_INJECT_KEY } from './background-context.ts';
 import { useTextHost } from './text-context.ts';
 
@@ -47,6 +48,12 @@ const Text = defineComponent({
 		// A <Box backgroundColor> ancestor provides this getter; the Text's own
 		// `backgroundColor` prop takes precedence.
 		const inheritedBackground = inject(BACKGROUND_COLOR_INJECT_KEY, null);
+		// Pulled from the renderer-provided accessibility context. In SR mode
+		// with `aria-label` set, Text renders the label as its content instead
+		// of the slot children — mirrors ink's behaviour and prevents children
+		// from being mounted / laid out when the screen reader will announce
+		// the label instead.
+		const accessibilityCtx = inject(ACCESSIBILITY_CONTEXT_KEY, null);
 		const tag = useTextHost();
 		// Rebuild the chalk pipeline only when a relevant style flag changes —
 		// this keeps `internal_transform`'s identity stable across renders, so
@@ -70,7 +77,12 @@ const Text = defineComponent({
 		});
 
 		return () => {
-			const children = (slots.default?.() ?? []) as VNodeChild[];
+			const isScreenReaderEnabled =
+				accessibilityCtx?.isScreenReaderEnabled.value ?? false;
+			const children: VNodeChild[] =
+				isScreenReaderEnabled && props.ariaLabel !== undefined
+					? [props.ariaLabel]
+					: ((slots.default?.() ?? []) as VNodeChild[]);
 			const accessibility: AccessibilityInfo | undefined =
 				props.ariaLabel !== undefined || props.ariaHidden !== undefined
 					? {

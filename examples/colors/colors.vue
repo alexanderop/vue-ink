@@ -1,7 +1,7 @@
-<script setup>
-import { Box, Text } from 'vue-ink';
+<script setup lang="ts">
+import { Box, Text } from 'vueink';
 
-const colors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
+const colors: string[] = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
 </script>
 
 <template>

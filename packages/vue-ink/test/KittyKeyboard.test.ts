@@ -103,6 +103,43 @@ describe('kitty keyboard — render integration', () => {
 		expect(after).not.toContain('\x1b[<u');
 	});
 
+	it('auto mode does NOT query the terminal when stdout is not a TTY', () => {
+		// Regression: auto-detection used to check `options.interactive !== false`
+		// instead of the resolved `interactive` flag, so non-TTY pipes/CI got the
+		// CSI ?u probe written into stdout (polluting captured logs).
+		const fakeStdin = createFakeStdin({ isTTY: false });
+		const stdout = createCaptureStream(20); // isTTY defaults to false
+		const Demo = defineComponent({
+			setup: () => () => h('ink-text', null, 'x'),
+		});
+		const instance = render(Demo, {
+			stdout,
+			stdin: fakeStdin,
+			exitOnCtrlC: false,
+			kittyKeyboard: { mode: 'auto' },
+		});
+		expect(stdout.frames.join('')).not.toContain('\x1b[?u');
+		instance.unmount();
+	});
+
+	it('auto mode does NOT query the terminal when stdin is not a TTY', () => {
+		// Even if stdout is a real TTY, a non-TTY stdin (pipe) can't deliver the
+		// response — querying just leaks the escape and wedges a stdin listener.
+		const fakeStdin = createFakeStdin({ isTTY: false });
+		const stdout = createCaptureStream(20, { isTTY: true });
+		const Demo = defineComponent({
+			setup: () => () => h('ink-text', null, 'x'),
+		});
+		const instance = render(Demo, {
+			stdout,
+			stdin: fakeStdin,
+			exitOnCtrlC: false,
+			kittyKeyboard: { mode: 'auto' },
+		});
+		expect(stdout.frames.join('')).not.toContain('\x1b[?u');
+		instance.unmount();
+	});
+
 	it('does NOT write the escape when mode is disabled', () => {
 		const fakeStdin = createFakeStdin();
 		const stdout = createCaptureStream(20);

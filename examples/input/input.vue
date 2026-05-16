@@ -1,6 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
-import { Box, Text, useInput, useApp } from 'vue-ink';
+import { Box, Text, useInput, useApp } from 'vueink';
+import type { Key } from 'vueink';
 
 const lastInput = ref('');
 const lastKey = ref('');
@@ -8,7 +9,7 @@ const pressCount = ref(0);
 
 const { exit } = useApp();
 
-useInput((input, key) => {
+useInput((input: string, key: Key) => {
 	pressCount.value += 1;
 	lastInput.value = input;
 	const flags = Object.entries(key)

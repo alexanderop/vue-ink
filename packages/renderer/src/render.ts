@@ -285,6 +285,9 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	// scrollback only in debug mode, which re-emits the whole frame.
 	let lastStaticOutput = '';
 	let fullStaticOutput = '';
+	// One-shot guard so a non-append-only Static mutation doesn't spam stderr
+	// on every subsequent paint.
+	let staticDivergenceWarned = false;
 	// The Promise constructor runs its executor synchronously, so by the time
 	// these are read elsewhere they're always the real resolve/reject — the
 	// no-op assertions here just satisfy the type checker before assignment.
@@ -387,6 +390,13 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	// escapes so terminals supporting DEC 2026 don't flicker through a
 	// half-erased intermediate frame on rapid writes. The whole call is a
 	// no-op after unmount — matches ink at `ink.tsx:672-674`.
+	//
+	// Assumes `target` shares the same tty as `writeStream`: the erase and
+	// repaint both go to stdout while `target` may be stderr. On a real
+	// terminal the two streams attach to the same device, so the visual
+	// effect is "data appears between erase and repaint." If stderr is piped
+	// elsewhere, the data goes to the pipe and stdout shows a clean reflow —
+	// surprising but not corrupting.
 	const writeAboveFrame = (target: NodeJS.WriteStream, data: string): void => {
 		if (unmounted) return;
 		const sync = useTTYFrame;
@@ -455,8 +465,14 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			commitNow();
 			return;
 		}
+		// Trailing timer already armed — the coalesced paint will catch this
+		// state change. No further work to do.
+		if (trailingTimer !== undefined) {
+			hasPendingRender = true;
+			return;
+		}
 		const elapsed = Date.now() - lastRenderAt;
-		if (elapsed >= renderThrottleMs && trailingTimer === undefined) {
+		if (elapsed >= renderThrottleMs) {
 			commitNow();
 			return;
 		}
@@ -547,14 +563,21 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		const cursorPosition = currentCursorPosition;
 
 		// The new static suffix: items present this paint that weren't in the
-		// previous static snapshot. Append-only assumption — if the user
-		// rewrites the array, the diff falls back to "emit everything new"
-		// which is still safe, just verbose.
+		// previous static snapshot. Static is strictly append-only because
+		// terminal scrollback can't be erased — if the new output doesn't
+		// start with the previous, we skip the emission (the survivors already
+		// live in scrollback above; re-emitting them just produces duplicates).
+		// The non-prefix case is a `<Static>` misuse: warn once via stderr.
 		let newStatic = '';
 		if (staticOutput !== lastStaticOutput) {
-			newStatic = staticOutput.startsWith(lastStaticOutput)
-				? staticOutput.slice(lastStaticOutput.length)
-				: staticOutput;
+			if (staticOutput.startsWith(lastStaticOutput)) {
+				newStatic = staticOutput.slice(lastStaticOutput.length);
+			} else if (!staticDivergenceWarned) {
+				staticDivergenceWarned = true;
+				stderr.write(
+					'vue-ink: <Static> items mutated non-append-only (item removed or reordered). Scrollback above the live frame cannot be erased; the divergent emission is skipped to avoid duplicates.\n',
+				);
+			}
 			lastStaticOutput = staticOutput;
 		}
 		// Each emitted static chunk gets a trailing `\n` so the live frame
@@ -579,8 +602,8 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			return;
 		}
 
-		const lineCount = text.length === 0 ? 0 : text.split('\n').length;
 		const nextLines = text.length === 0 ? [] : text.split('\n');
+		const lineCount = nextLines.length;
 
 		if (useTTYFrame) {
 			if (!cursorHidden) {
@@ -628,7 +651,13 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	// Line-level diff: rewrite only the lines that changed, skip unchanged
 	// lines with `cursorNextLine`, and erase any tail dropped by shrinking
 	// output. The previous frame is assumed to end with `\n` (the cursor sits
-	// on the line after `previousLines.length - 1`).
+	// on the line below row `prevVisible - 1`, i.e. at row `prevVisible`).
+	// Mirrors ink's log-update.ts:257-303.
+	//
+	// Callers MUST guard against `prevVisible === 0`: this function emits no
+	// cursor positioning when neither shrink nor grow applies — the call-site
+	// check `lastOutput.length > 0` routes first paints through the
+	// non-incremental branch instead.
 	const buildIncrementalDiff = (
 		previousLines: string[],
 		nextLines: string[],
@@ -637,14 +666,31 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		const nextVisible = nextLines.length;
 		const buf: string[] = [];
 
-		// Move cursor up to the top of the previous frame. After the previous
-		// `${text}\n` the cursor is on the line after `prevVisible - 1` (i.e. at
-		// row `prevVisible`), so we need to go up `prevVisible` lines to reach
-		// row 0.
-		if (prevVisible > 0) buf.push(ansiEscapes.cursorUp(prevVisible));
+		// Step 1: position the cursor at the top of the previous frame.
+		// On shrink, do the erase FIRST while the cursor is at the bottom —
+		// `eraseLines` clears the current line and walks UP, so starting from
+		// row `prevVisible` it erases the dropped tail + the trailing-newline
+		// park slot in one shot, leaving the cursor at the top of the erased
+		// block (row `nextVisible`). Then climb to row 0 with `cursorUp`.
+		// Erasing AFTER the rewrite (the previous shape) wiped just-written
+		// rows and left the real dropped tail on screen.
+		if (nextVisible < prevVisible) {
+			const dropped = prevVisible - nextVisible;
+			// `+1` accounts for the line below the frame where the previous
+			// trailing `\n` parked the cursor; otherwise a partial last row of
+			// stale content can leak through.
+			buf.push(ansiEscapes.eraseLines(dropped + 1));
+			if (nextVisible > 0) buf.push(ansiEscapes.cursorUp(nextVisible));
+		} else if (prevVisible > 0) {
+			// Grow or same-size: cursor is at row `prevVisible`; climb to row 0.
+			buf.push(ansiEscapes.cursorUp(prevVisible));
+		}
 
-		const sharedLines = Math.min(prevVisible, nextVisible);
-		for (let i = 0; i < sharedLines; i += 1) {
+		// Step 2: walk down rows 0..nextVisible-1, rewriting changed lines and
+		// skipping unchanged ones with `cursorNextLine`. Rows past `prevVisible`
+		// have `previousLines[i] === undefined` and will always differ from a
+		// non-undefined string, so the same loop handles growth without a split.
+		for (let i = 0; i < nextVisible; i += 1) {
 			if (nextLines[i] === previousLines[i]) {
 				buf.push(ansiEscapes.cursorNextLine);
 				continue;
@@ -653,21 +699,6 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			buf.push(nextLines[i]!);
 			buf.push(ansiEscapes.eraseEndLine);
 			buf.push('\n');
-		}
-
-		// New lines beyond the previous frame: write them with a trailing
-		// newline so subsequent paints start at the line below.
-		for (let i = sharedLines; i < nextVisible; i += 1) {
-			buf.push(ansiEscapes.cursorTo(0));
-			buf.push(nextLines[i]!);
-			buf.push(ansiEscapes.eraseEndLine);
-			buf.push('\n');
-		}
-
-		// Dropped tail: erase the leftover lines from the previous paint.
-		if (prevVisible > nextVisible) {
-			const dropped = prevVisible - nextVisible;
-			buf.push(ansiEscapes.eraseLines(dropped));
 		}
 
 		return buf.join('');
@@ -706,9 +737,13 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	const onResize = (): void => {
 		// Width changed — previous line count can't be trusted for erase math
-		// and the new layout may differ even from identical state.
+		// and the new layout may differ even from identical state. Reset the
+		// cursor snapshot too so `buildReturnToBottom` doesn't try to walk
+		// against coordinates that belong to the pre-resize layout.
 		lastOutput = '';
+		lastOutputLines = [];
 		lastLineCount = 0;
+		lastCursorPosition = undefined;
 		renderImmediate();
 	};
 
@@ -810,20 +845,21 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			writeStream.write(enableKittyKeyboard(flags));
 			kittyProtocolEnabled = true;
 		};
+		// Both `enabled` and `auto` require real TTYs on both stdin and stdout
+		// — terminals only respond to CSI escapes on a real tty, and writing
+		// the query/push to a pipe/file pollutes captured output. The `auto`
+		// path additionally needs stdin to deliver the response. Mirrors ink at
+		// `repos/ink/src/ink.tsx:1120-1126`.
+		const stdinIsTTY = Boolean((stdin as NodeJS.ReadStream).isTTY);
 		if (mode === 'enabled') {
-			// Force-enable still requires both streams to be TTYs — terminals
-			// can only respond to CSI escapes on a real tty, and writing the
-			// query to a pipe/file just pollutes captured output. Mirrors ink
-			// at `repos/ink/src/ink.tsx:1120-1126`.
-			const stdinIsTTY = Boolean((stdin as NodeJS.ReadStream).isTTY);
 			if (stdinIsTTY && isTTY) {
 				enableProtocol();
 			}
-		} else if (options.interactive !== false) {
+		} else if (interactive && isTTY && stdinIsTTY) {
 			// `auto`: query the terminal and only push the protocol if it
 			// responds within 200ms. Listen before writing the query so a fast
 			// (synchronous) response isn't dropped.
-			let responseBuffer: number[] = [];
+			const responseBuffer: number[] = [];
 			let timer: ReturnType<typeof setTimeout> | undefined;
 			const cleanup = (): void => {
 				cancelKittyDetection = undefined;
@@ -836,14 +872,13 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 				// they aren't lost from the normal input pipeline. Strip just the
 				// protocol response bytes and any trailing partial match.
 				const remaining = stripKittyQueryResponses(responseBuffer);
-				responseBuffer = [];
 				if (remaining.length > 0 && typeof stdin.unshift === 'function') {
 					stdin.unshift(Uint8Array.from(remaining));
 				}
 			};
 			const onResponseData = (chunk: Buffer | string): void => {
 				const buf = typeof chunk === 'string' ? Buffer.from(chunk, 'utf8') : chunk;
-				for (const byte of buf) responseBuffer.push(byte);
+				for (let i = 0; i < buf.length; i += 1) responseBuffer.push(buf[i]!);
 				if (hasCompleteKittyQueryResponse(responseBuffer)) {
 					cleanup();
 					if (!unmounted) enableProtocol();
@@ -853,6 +888,22 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			timer = setTimeout(cleanup, 200);
 			cancelKittyDetection = cleanup;
 			writeStream.write('\x1b[?u');
+		}
+	}
+
+	// Conditionally connect Vue DevTools — mirrors react-ink's
+	// `repos/ink/src/reconciler.ts:32-44`. `@vue/devtools` is an optional peer
+	// dep so the resolve probe gates the side-effect import. `render()` is sync
+	// so we fire-and-forget; Vue's devtools buffer (`repos/core/.../devtools.ts`)
+	// replays APP_INIT once the hook connects.
+	if (process.env['DEV'] === 'true') {
+		let isDevtoolsInstalled = false;
+		try {
+			import.meta.resolve('@vue/devtools');
+			isDevtoolsInstalled = true;
+		} catch {}
+		if (isDevtoolsInstalled) {
+			void import('./devtools.ts');
 		}
 	}
 

@@ -43,6 +43,12 @@ export interface UseAnimationReturn {
 }
 
 /**
+ * Ink-compat alias for {@link UseAnimationReturn}. Lets porters keep
+ * `import type { AnimationResult } from 'vue-ink'` working unchanged.
+ */
+export type AnimationResult = UseAnimationReturn;
+
+/**
  * Drive an animation off the shared renderer timer. Returns reactive
  * `frame`/`time`/`delta` refs plus a `reset()` action. Multiple consumers
  * coalesce into a single underlying scheduler so spinners and progress bars

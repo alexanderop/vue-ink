@@ -9,15 +9,17 @@ Use Vue's reactivity, components, and SFCs to build interactive command-line app
 ## Install
 
 ```sh
-npm install vue-ink vue
+npm install vueink vue
 ```
+
+> The package is published as `vueink` on npm (the `vue-ink` name was taken). The project is still called vue-ink everywhere else.
 
 Requires Node.js `>=22`.
 
 ## Quick start
 
 ```ts
-import { render, Text } from 'vue-ink';
+import { render, Text } from 'vueink';
 import { defineComponent } from 'vue';
 
 const App = defineComponent({
@@ -35,7 +37,7 @@ render(App);
 <!-- counter.vue -->
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { Text } from 'vue-ink';
+import { Text } from 'vueink';
 
 const counter = ref(0);
 let timer = null;
@@ -57,7 +59,7 @@ onBeforeUnmount(() => {
 ```
 
 ```ts
-import { render } from 'vue-ink';
+import { render } from 'vueink';
 import Counter from './counter.vue';
 
 const instance = render(Counter);
@@ -124,18 +126,24 @@ Renders styled text. Props:
 
 ## What's implemented
 
-- `render()` with TTY in-place updates and `debug` mode
-- `<Box>` with the Ink flexbox prop surface, backed by Yoga
-- `<Text>` with chalk-powered styling and text wrapping/truncation
+- Components: `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, `<Static>`, `<Transform>`
+- Composables: `useApp`, `useStdin`, `useStdout`, `useStderr`, `useInput`, `usePaste`, `useFocus`, `useFocusManager`, `useWindowSize`, `useBoxMetrics`, `useCursor`, `useAnimation`, `useIsScreenReaderEnabled`
+- `render()` / `renderToString()` / `measureElement()` with TTY in-place updates, `debug` mode, alternate screen, kitty keyboard, incremental rendering
 - Reactive re-renders driven by Vue's scheduler
+- Screen-reader / ARIA support on `<Box>` and `<Text>`
+- Testing helpers via `@vue-ink/testing-library` (port of `ink-testing-library`)
 
-## What's not (yet)
+See `brain/porting/api-tracker.md` for the full ink → vue-ink parity table.
 
-- Hooks/composables for input (`useInput`), focus, app lifecycle (`useApp`, `useStdin`, `useStdout`)
-- `<Static>`, `<Transform>`, `<Newline>`, `<Spacer>`
-- Testing helpers (`ink-testing-library` equivalent)
+## Packages
 
-PRs welcome.
+| package                    | npm                                                                   |
+|----------------------------|-----------------------------------------------------------------------|
+| `vueink`                   | umbrella entry — most apps install only this                          |
+| `@vue-ink/components`      | `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, `<Static>`, `<Transform>` |
+| `@vue-ink/renderer`        | Vue custom renderer + composables                                     |
+| `@vue-ink/core`            | Terminal DOM, layout, output pipeline (no Vue dependency)             |
+| `@vue-ink/testing-library` | `render`, `lastFrame`, `frames`, fake stdin/stdout                    |
 
 ## Credits
 

@@ -29,11 +29,6 @@ export const usePaste = (
 ): Stop => {
 	const { setRawMode, setBracketedPasteMode, emitter, isRawModeSupported } =
 		requireContext(STDIN_CONTEXT_KEY, 'usePaste()');
-	if (!isRawModeSupported) {
-		throw new Error(
-			'usePaste() requires a TTY stdin that supports raw mode. Pipe input is not supported.',
-		);
-	}
 
 	return useEmitterListener(
 		emitter,
@@ -41,7 +36,15 @@ export const usePaste = (
 		(...args: unknown[]) => handler(args[0] as string),
 		{
 			isActive: options.isActive,
+			// Defer the raw-mode requirement until the listener would actually
+			// attach. Matches ink: `usePaste(h, { isActive: false })` is a no-op
+			// on non-TTY stdin instead of throwing.
 			onAttach: () => {
+				if (!isRawModeSupported) {
+					throw new Error(
+						'usePaste() requires a TTY stdin that supports raw mode. Pipe input is not supported.',
+					);
+				}
 				setRawMode(true);
 				setBracketedPasteMode(true);
 			},

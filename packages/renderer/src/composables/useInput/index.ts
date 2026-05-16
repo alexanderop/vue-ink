@@ -32,11 +32,6 @@ export const useInput = (handler: InputHandler, options: UseInputOptions = {}): 
 		STDIN_CONTEXT_KEY,
 		'useInput()',
 	);
-	if (!isRawModeSupported) {
-		throw new Error(
-			'useInput() requires a TTY stdin that supports raw mode. Pipe input is not supported.',
-		);
-	}
 
 	return useEmitterListener(
 		emitter,
@@ -45,7 +40,17 @@ export const useInput = (handler: InputHandler, options: UseInputOptions = {}): 
 		(...args: unknown[]) => handler(args[0] as string, args[1] as Key),
 		{
 			isActive: options.isActive,
-			onAttach: () => setRawMode(true),
+			// Defer the raw-mode requirement until the listener would actually
+			// attach. Matches ink: `useInput(h, { isActive: false })` is a no-op
+			// on non-TTY stdin instead of throwing.
+			onAttach: () => {
+				if (!isRawModeSupported) {
+					throw new Error(
+						'useInput() requires a TTY stdin that supports raw mode. Pipe input is not supported.',
+					);
+				}
+				setRawMode(true);
+			},
 			onDetach: () => setRawMode(false),
 		},
 	);

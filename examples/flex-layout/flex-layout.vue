@@ -1,5 +1,5 @@
-<script setup>
-import { Box, Text } from 'vue-ink';
+<script setup lang="ts">
+import { Box, Text } from 'vueink';
 </script>
 
 <template>

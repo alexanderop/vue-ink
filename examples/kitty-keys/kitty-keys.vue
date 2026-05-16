@@ -1,12 +1,15 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
-import { Box, Text, useApp, useInput } from 'vue-ink';
+import { Box, Text, useApp, useInput } from 'vueink';
+import type { Key } from 'vueink';
 
-const last = ref({ input: '', flags: '', special: '', eventType: '' });
+type Last = { input: string; flags: string; special: string; eventType: string };
+
+const last = ref<Last>({ input: '', flags: '', special: '', eventType: '' });
 const { exit } = useApp();
 
-useInput((input, key) => {
-	const flags = [];
+useInput((input: string, key: Key) => {
+	const flags: string[] = [];
 	if (key.ctrl) flags.push('ctrl');
 	if (key.shift) flags.push('shift');
 	if (key.meta) flags.push('meta');
@@ -15,7 +18,7 @@ useInput((input, key) => {
 	if (key.capsLock) flags.push('capsLock');
 	if (key.numLock) flags.push('numLock');
 
-	const special = [];
+	const special: string[] = [];
 	if (key.upArrow) special.push('↑');
 	if (key.downArrow) special.push('↓');
 	if (key.leftArrow) special.push('←');

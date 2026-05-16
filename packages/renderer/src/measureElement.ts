@@ -38,7 +38,7 @@ const resolveElement = (target: unknown): DOMElement | null => {
  * ```vue
  * <script setup lang="ts">
  * import { useTemplateRef } from 'vue';
- * import { Box, useInput, measureElement } from 'vue-ink';
+ * import { Box, useInput, measureElement } from 'vueink';
  *
  * const boxRef = useTemplateRef('box');
  * useInput((_input, key) => {

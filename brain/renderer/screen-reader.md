@@ -17,21 +17,37 @@ the DOM directly to produce a flat string of text + ARIA announcements.
   based on the `isScreenReaderEnabled` flag.
 - **Components** — `Box` accepts `aria-label`, `aria-hidden`, `aria-role`,
   `aria-state`; `Text` accepts `aria-label`, `aria-hidden`. Both forward
-  the metadata via `internal_accessibility` on the host node — they do
-  *not* read `useIsScreenReaderEnabled()` themselves.
+  metadata via `internal_accessibility` on the host node so the SR walker
+  can read it without re-running setup. They **also** inject the renderer-
+  provided `ACCESSIBILITY_CONTEXT_KEY` (shared between packages via
+  `Symbol.for('vue-ink.accessibility')` so identity is stable without forcing
+  components to depend on the renderer) to short-circuit two ink-parity
+  behaviours in setup:
+  - `<Text aria-label>` swaps the slot children for the label string when
+    SR is on — mirrors ink (`repos/ink/src/components/Text.tsx:87-88`).
+  - `<Box aria-hidden>` returns `null` when SR is on so the whole subtree
+    skips reconciliation, Yoga layout, and child lifecycle hooks —
+    mirrors ink (`repos/ink/src/components/Box.tsx:76-78`).
 
-## Why metadata on the DOM, not conditionals in setup
+## Why metadata on the DOM *and* a setup branch
 
-Ink branches in `Box`/`Text` setup: if SR is enabled, render `aria-label`
-text instead of children. That works because React re-renders on
-context change. In vue-ink we put the data on the DOM node instead, and
-the walk reads it at paint time. Two reasons:
+We now do both:
 
-1. The component subtree is identical regardless of SR mode; only the
-   render path differs. Less re-rendering, smaller VDOM churn.
-2. `@vue-ink/components` doesn't depend on `@vue-ink/renderer`, so it
-   can't `useIsScreenReaderEnabled()` directly. Pushing the decision
-   into the walker avoids a circular package dep.
+- **Metadata on the DOM** — `internal_accessibility.{label, hidden, role,
+  state}` drives the SR walker (`renderNodeToScreenReaderOutput`). This
+  keeps the visual VDOM stable and lets the walker pick up everything in
+  one pass at paint time.
+- **Setup branch in `<Text>` / `<Box>`** — required for ink semantic parity:
+  - `aria-label` on Text replaces children, so children's `onMounted` (and
+    Yoga measurement) don't run when SR is on.
+  - `aria-hidden` on Box returns `null`, so the whole subtree is never
+    reconciled.
+
+Components can read the SR flag without depending on `@vue-ink/renderer` by
+sharing `ACCESSIBILITY_CONTEXT_KEY` via Node's global symbol registry
+(`Symbol.for('vue-ink.accessibility')`). Both packages declare an
+`InjectionKey` with the same string; identity matches at runtime without
+either side importing the other.
 
 ## Style transforms are stripped
 

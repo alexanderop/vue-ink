@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { Text } from 'vue-ink';
+import { Text } from 'vueink';
 
 const counter = ref(0);
-let timer = null;
+let timer: NodeJS.Timeout | null = null;
 
 onMounted(() => {
 	timer = setInterval(() => {

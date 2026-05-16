@@ -4,7 +4,7 @@ Item-by-item map of the public React Ink surface (v7.0.3 readme) to
 what vue-ink ships today. Companion to [[from-react-ink]] — that file
 explains *how* to translate idioms; this one is the flat checklist.
 
-Verified on 2026-05-15 against `repos/ink/` and `packages/*/src/`.
+Verified on 2026-05-16 against `repos/ink/` and `packages/*/src/`.
 
 Legend:
 
@@ -98,11 +98,17 @@ ARIA: `aria-label`, `aria-hidden`, `aria-role`, `aria-state` ✅
 Shape changes (the ⚠️ rows — none are missing features):
 
 - `useInput` / `usePaste` return a `Stop` function and accept
-  `MaybeRefOrGetter<T>` options.
+  `MaybeRefOrGetter<T>` options. They also defer the
+  `isRawModeSupported` check until the listener actually attaches — so
+  `useInput(h, { isActive: false })` on a non-TTY stdin is a no-op,
+  matching ink (was eager-throw in earlier vue-ink).
 - `useWindowSize()` returns two `ShallowRef<number>` instead of one
-  object.
+  object. Ink's `WindowSize` type (plain `{ columns, rows }` numbers) is
+  re-exported as a separate alias for porters.
 - `useFocus()` returns `{ isFocused: ComputedRef<boolean>, focus }`.
 - `useIsScreenReaderEnabled()` returns `Ref<boolean>`.
+- `useAnimation()` return type is published as both `UseAnimationReturn`
+  (vue-ink name) and `AnimationResult` (ink-compat alias).
 
 Details in [[from-react-ink#hooks-composables-the-three-shape-changes]].
 
@@ -201,13 +207,26 @@ Supported `aria-state` flags: `busy`, `checked`, `disabled`,
 
 ---
 
+## Type aliases (ink-compat re-exports)
+
+These names exist purely to keep porter imports working unchanged. They
+are aliases; the vue-ink-flavoured names remain the primary public types.
+
+| ink                        | vue-ink alias            | Status | Notes |
+|----------------------------|--------------------------|--------|-------|
+| `WindowSize`               | `WindowSize`             | ✅     | Plain `{ columns: number; rows: number }`. Distinct from `UseWindowSizeReturn` (two `ShallowRef`s). |
+| `AnimationResult`          | `AnimationResult`        | ✅     | Alias for `UseAnimationReturn`. |
+| `DOMElement`               | `DOMElement`             | ✅     | Re-exported from `@vue-ink/core` via the renderer barrel. |
+
+---
+
 ## React-only concepts (won't be ported)
 
 These exist for React reasons and have no vue-ink analogue:
 
-- **React Devtools integration** — vue-ink doesn't ship a devtools
-  bridge. The Vue equivalent would be `@vue/devtools`; no work has
-  been done here.
+- **React Devtools integration** ✅ — ported via `@vue/devtools` instead
+  of `react-devtools-core`. See `packages/renderer/src/devtools.ts`
+  and the Devtools section below.
 - **`concurrent: true`** — Vue's scheduler is always batched, no opt-in.
 - **`Suspense`** — use `async setup()` + a fallback ref instead.
 - **`useTransition`, `useDeferredValue`** — Vue has no equivalent;
@@ -217,9 +236,31 @@ These exist for React reasons and have no vue-ink analogue:
 
 ---
 
+## Devtools
+
+Opt-in Vue DevTools bridge mirroring ink's `react-devtools-core`
+integration. Set `DEV=true`, install `@vue/devtools` as a dev
+dependency in your consumer project, run the standalone GUI, and the
+Components panel shows a live tree of your terminal app.
+
+| ink                                 | vue-ink                              | Status | Where                                       |
+|-------------------------------------|--------------------------------------|--------|---------------------------------------------|
+| `DEV=true` + `react-devtools-core`  | `DEV=true` + `@vue/devtools`         | ✅     | `packages/renderer/src/devtools.ts`         |
+| `npx react-devtools` (port 8097)    | `pnpm dlx @vue/devtools` (port 8098) | ✅     |                                             |
+
+`@vue/devtools` is an **optional peer dep** — consumers install it
+themselves (`pnpm add -D @vue/devtools`). If unset or missing the
+loader no-ops; no install cost for users who don't want devtools.
+
+Caveats: DOM Elements panel can't render `ink-box`/`ink-text` host
+nodes (not HTML); use the Components tab. Composables surface as
+setup state on the owning component, not a separate "Hooks" panel.
+
+---
+
 ## Gaps worth filling (ranked by likely demand)
 
-1. **Devtools** — long-tail; revisit only when users ask.
+_None currently tracked — the api-tracker is at parity with react-ink._
 
 ---
 

@@ -3,6 +3,23 @@
 	"version": "0.0.1",
 	"description": "Terminal DOM, layout, and output pipeline for vue-ink. No Vue dependency.",
 	"license": "MIT",
+	"author": "Alexander Opalic <opalic@gmx.net>",
+	"homepage": "https://github.com/alexanderop/vue-ink#readme",
+	"bugs": "https://github.com/alexanderop/vue-ink/issues",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/alexanderop/vue-ink.git",
+		"directory": "packages/core"
+	},
+	"keywords": [
+		"vue",
+		"ink",
+		"terminal",
+		"cli",
+		"tui",
+		"yoga-layout",
+		"vue-ink"
+	],
 	"type": "module",
 	"main": "./src/index.ts",
 	"types": "./src/index.ts",
@@ -12,9 +29,27 @@
 			"default": "./src/index.ts"
 		}
 	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"publishConfig": {
+		"access": "public",
+		"main": "./dist/index.js",
+		"types": "./dist/index.d.ts",
+		"exports": {
+			".": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			}
+		}
+	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"build": "tsc --noEmit"
+		"build": "tsc -p tsconfig.build.json",
+		"clean": "rm -rf dist",
+		"prepublishOnly": "pnpm run clean && pnpm run build"
 	},
 	"dependencies": {
 		"@alcalzone/ansi-tokenize": "^0.3.0",

@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/composables/useStdout/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAsB,MAAM,kBAAkB,CAAC;AAC1E,OAAO,EAAE,cAAc,EAAE,MAAM,uBAAuB,CAAC;AAEvD;;;;;GAKG;AACH,MAAM,CAAC,MAAM,SAAS,GAAG,GAAkB,EAAE,CAC5C,cAAc,CAAC,kBAAkB,EAAE,aAAa,CAAC,CAAC"}
