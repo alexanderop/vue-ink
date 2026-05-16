@@ -1,1 +1,0 @@
-{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../src/composables/useWindowSize/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAAc,KAAK,UAAU,EAAE,MAAM,KAAK,CAAC;AAIlD,MAAM,WAAW,mBAAmB;IACnC,OAAO,EAAE,UAAU,CAAC,MAAM,CAAC,CAAC;IAC5B,IAAI,EAAE,UAAU,CAAC,MAAM,CAAC,CAAC;CACzB;AAQD;;;;;;;;;;;;;GAaG;AACH,eAAO,MAAM,aAAa,QAAO,mBAmBhC,CAAC"}

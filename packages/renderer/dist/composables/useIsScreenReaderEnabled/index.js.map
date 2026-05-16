@@ -1,1 +1,0 @@
-{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/composables/useIsScreenReaderEnabled/index.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,yBAAyB,EAAE,MAAM,kBAAkB,CAAC;AAC7D,OAAO,EAAE,cAAc,EAAE,MAAM,uBAAuB,CAAC;AAEvD;;;;;GAKG;AACH,MAAM,CAAC,MAAM,wBAAwB,GAAG,GAAiB,EAAE,CAC1D,cAAc,CAAC,yBAAyB,EAAE,4BAA4B,CAAC;KACrE,qBAAqB,CAAC"}

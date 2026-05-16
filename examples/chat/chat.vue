@@ -164,7 +164,7 @@ const minWidth = computed(() => Math.max(columns.value, 60));
 				<Text :italic="m.role === 'action'" :dimColor="m.role === 'system'">{{ m.text }}</Text>
 			</Box>
 			<Box v-if="typingFromBot">
-				<Text color="cyan" bold>bot </Text>
+				<Text color="black" bold>bot </Text>
 				<Text dimColor> {{ TYPING_FRAMES[typingFrame % TYPING_FRAMES.length] }} typing…</Text>
 			</Box>
 		</Box>

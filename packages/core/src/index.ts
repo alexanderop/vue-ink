@@ -9,5 +9,6 @@ export { renderStaticSubtrees, hasStaticContent } from './render-static.ts';
 export { default as renderBorder } from './render-border.ts';
 export { default as renderBackground } from './render-background.ts';
 export { default as sanitizeAnsi } from './sanitize-ansi.ts';
-export { default as applyStyles, type Styles } from './styles.ts';
+export { default as applyStyles, type Color, type Styles } from './styles.ts';
 export { default as colorize } from './colorize.ts';
+export type { ForegroundColorName } from 'ansi-styles';

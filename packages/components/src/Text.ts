@@ -1,30 +1,47 @@
 import { computed, defineComponent, h, inject, type PropType, type VNodeChild } from 'vue';
-import chalk from 'chalk';
-import { colorize, type AccessibilityInfo, type Styles } from '@vue-ink/core';
-import { ACCESSIBILITY_CONTEXT_KEY } from './accessibility-context.ts';
+import type { Color, Styles } from '@vue-ink/core';
 import { BACKGROUND_COLOR_INJECT_KEY } from './background-context.ts';
 import { useTextHost } from './text-context.ts';
+import { applyTextStyles } from './helpers/text-styles.ts';
+import { buildAccessibility } from './helpers/accessibility.ts';
+import { useScreenReader } from './helpers/use-screen-reader.ts';
 
 export type TextProps = {
-	color?: string;
-	backgroundColor?: string;
+	/** Change text color. Ink uses Chalk under the hood, so all its functionality is supported. */
+	color?: Color;
+	/** Same as `color`, but for the background. */
+	backgroundColor?: Color;
+	/** Dim the color (make it less bright). */
 	dimColor?: boolean;
+	/** Make the text bold. */
 	bold?: boolean;
+	/** Make the text italic. */
 	italic?: boolean;
+	/** Make the text underlined. */
 	underline?: boolean;
+	/** Make the text crossed out with a line. */
 	strikethrough?: boolean;
+	/** Inverse background and foreground colors. */
 	inverse?: boolean;
+	/**
+	 * Wrap or truncate text when its width exceeds the container. `wrap` (default)
+	 * splits text into multiple lines. `hard` fills each line to the full column
+	 * width, breaking words as necessary. `truncate-*` keeps a single line and
+	 * cuts off the rest.
+	 */
 	wrap?: Styles['textWrap'];
+	/** Label announced to screen readers in place of the children. */
 	'aria-label'?: string;
+	/** Hide the element (and its subtree) from screen-reader output. */
 	'aria-hidden'?: boolean;
 };
 
 const Text = defineComponent({
 	name: 'Text',
 	props: {
-		color: { type: String as PropType<string | undefined>, default: undefined },
+		color: { type: String as PropType<Color | undefined>, default: undefined },
 		backgroundColor: {
-			type: String as PropType<string | undefined>,
+			type: String as PropType<Color | undefined>,
 			default: undefined,
 		},
 		dimColor: { type: Boolean, default: false },
@@ -45,51 +62,34 @@ const Text = defineComponent({
 		ariaHidden: { type: Boolean, default: undefined },
 	},
 	setup(props, { slots }) {
-		// A <Box backgroundColor> ancestor provides this getter; the Text's own
-		// `backgroundColor` prop takes precedence.
 		const inheritedBackground = inject(BACKGROUND_COLOR_INJECT_KEY, null);
-		// Pulled from the renderer-provided accessibility context. In SR mode
-		// with `aria-label` set, Text renders the label as its content instead
-		// of the slot children — mirrors ink's behaviour and prevents children
-		// from being mounted / laid out when the screen reader will announce
-		// the label instead.
-		const accessibilityCtx = inject(ACCESSIBILITY_CONTEXT_KEY, null);
+		const isScreenReaderEnabled = useScreenReader();
 		const tag = useTextHost();
-		// Rebuild the chalk pipeline only when a relevant style flag changes —
-		// this keeps `internal_transform`'s identity stable across renders, so
-		// patchProp's identity short-circuit avoids redundant work.
+		// Rebuild the transform only when a relevant style flag changes — keeps
+		// `internal_transform`'s identity stable so the renderer's patchProp
+		// short-circuits redundant work.
 		const transform = computed(() => {
-			const { color, backgroundColor, dimColor, bold, italic, underline, strikethrough, inverse } =
-				props;
-			const bg = backgroundColor ?? inheritedBackground?.();
-			return (text: string): string => {
-				let out = text;
-				if (dimColor) out = chalk.dim(out);
-				if (color) out = colorize(out, color, 'foreground');
-				if (bg) out = colorize(out, bg, 'background');
-				if (bold) out = chalk.bold(out);
-				if (italic) out = chalk.italic(out);
-				if (underline) out = chalk.underline(out);
-				if (strikethrough) out = chalk.strikethrough(out);
-				if (inverse) out = chalk.inverse(out);
-				return out;
+			const flags = {
+				color: props.color,
+				backgroundColor: props.backgroundColor ?? inheritedBackground?.(),
+				dimColor: props.dimColor,
+				bold: props.bold,
+				italic: props.italic,
+				underline: props.underline,
+				strikethrough: props.strikethrough,
+				inverse: props.inverse,
 			};
+			return (text: string): string => applyTextStyles(text, flags);
 		});
 
 		return () => {
-			const isScreenReaderEnabled =
-				accessibilityCtx?.isScreenReaderEnabled.value ?? false;
+			// Mirrors React Ink: when SR is on and aria-hidden is set, skip the
+			// subtree entirely — no node, no layout, no children mounting.
+			if (isScreenReaderEnabled.value && props.ariaHidden) return null;
 			const children: VNodeChild[] =
-				isScreenReaderEnabled && props.ariaLabel !== undefined
+				isScreenReaderEnabled.value && props.ariaLabel !== undefined
 					? [props.ariaLabel]
 					: ((slots.default?.() ?? []) as VNodeChild[]);
-			const accessibility: AccessibilityInfo | undefined =
-				props.ariaLabel !== undefined || props.ariaHidden !== undefined
-					? {
-							label: props.ariaLabel,
-							hidden: props.ariaHidden || undefined,
-						}
-					: undefined;
 			return h(
 				tag,
 				{
@@ -100,7 +100,10 @@ const Text = defineComponent({
 						textWrap: props.wrap,
 					},
 					internal_transform: transform.value,
-					internal_accessibility: accessibility,
+					internal_accessibility: buildAccessibility({
+						label: props.ariaLabel,
+						hidden: props.ariaHidden || undefined,
+					}),
 				},
 				children,
 			);

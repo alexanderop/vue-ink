@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { h, defineComponent } from 'vue';
-import { render, Box, Text } from '../src/index.ts';
+import { Box, Text } from '../src/index.ts';
 import { renderToString } from './helpers.ts';
 
 // `wrap-text` is internal — exercise it end-to-end through <Text wrap>.

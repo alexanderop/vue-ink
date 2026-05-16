@@ -133,6 +133,44 @@ describe('<Static>', () => {
 		instance.unmount();
 	});
 
+	it('does not duplicate surviving items above the live frame when the array shrinks in place', async () => {
+		// Static is append-only: scrollback cannot be erased. If the array
+		// shrinks (or otherwise diverges from the previous emission), we must
+		// NOT fall back to re-emitting the full new list — that would push
+		// duplicates of the survivors into scrollback above the prior copies.
+		const stdout = createCaptureStream(20);
+		const items = ref<string[]>(['A', 'B', 'C']);
+		const counter = ref(0);
+		const App = defineComponent({
+			setup: () => () =>
+				h(Box, { flexDirection: 'column' }, () => [
+					h(
+						Static,
+						{ items: items.value },
+						{ default: ({ item }: { item: string }) => h(Text, null, () => item) },
+					),
+					h(Text, null, () => `live=${counter.value}`),
+				]),
+		});
+
+		const instance = render(App, { stdout, interactive: true });
+		await instance.waitUntilRenderFlush();
+		const afterInitial = stdout.frames.length;
+
+		// User mutates the array in place, removing the middle item. The new
+		// output ('A\nC') doesn't start with the previous ('A\nB\nC'), so the
+		// old "emit everything new" fallback would push 'A' and 'C' a second
+		// time into scrollback above the live frame.
+		items.value = ['A', 'C'];
+		counter.value += 1;
+		await instance.waitUntilRenderFlush();
+
+		const post = stripAnsi(stdout.frames.slice(afterInitial).join(''));
+		// 'A' must not be re-emitted (it's already in scrollback above).
+		expect(post).not.toContain('A');
+		instance.unmount();
+	});
+
 	it('passes the index argument alongside the item to the default slot', async () => {
 		const App = defineComponent({
 			setup: () => () =>

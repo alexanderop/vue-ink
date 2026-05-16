@@ -1,3 +1,4 @@
+export type { Color } from '@vue-ink/core';
 export { default as Box, type BoxProps } from './Box.ts';
 export { default as Text, type TextProps } from './Text.ts';
 export { default as Newline, type NewlineProps } from './Newline.ts';

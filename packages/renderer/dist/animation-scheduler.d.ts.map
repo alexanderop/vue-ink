@@ -1,1 +1,0 @@
-{"version":3,"file":"animation-scheduler.d.ts","sourceRoot":"","sources":["../src/animation-scheduler.ts"],"names":[],"mappings":"AAMA,OAAO,KAAK,EACX,qBAAqB,EACrB,qBAAqB,EACrB,MAAM,cAAc,CAAC;AAStB,MAAM,MAAM,kBAAkB,GAAG;IAChC,SAAS,EAAE,CAAC,QAAQ,EAAE,qBAAqB,EAAE,QAAQ,EAAE,MAAM,KAAK,qBAAqB,CAAC;IACxF,OAAO,EAAE,MAAM,IAAI,CAAC;CACpB,CAAC;AAEF,eAAO,MAAM,wBAAwB,QAAO,kBA4E3C,CAAC"}

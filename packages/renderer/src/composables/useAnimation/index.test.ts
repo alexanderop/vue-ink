@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ref } from 'vue';
-import { ANIMATION_CONTEXT_KEY, type AnimationContext } from '../../context.ts';
+import { type AnimationContext } from '../../context.ts';
 import { createAnimationScheduler } from '../../animation-scheduler.ts';
 import { withSetup } from '../_test/with-setup.ts';
 import { useAnimation } from './index.ts';

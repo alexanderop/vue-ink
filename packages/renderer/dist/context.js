@@ -1,9 +1,0 @@
-export const APP_CONTEXT_KEY = Symbol('vue-ink.app');
-export const STDIN_CONTEXT_KEY = Symbol('vue-ink.stdin');
-export const STDOUT_CONTEXT_KEY = Symbol('vue-ink.stdout');
-export const STDERR_CONTEXT_KEY = Symbol('vue-ink.stderr');
-export const ACCESSIBILITY_CONTEXT_KEY = Symbol('vue-ink.accessibility');
-export const FOCUS_CONTEXT_KEY = Symbol('vue-ink.focus');
-export const ANIMATION_CONTEXT_KEY = Symbol('vue-ink.animation');
-export const CURSOR_CONTEXT_KEY = Symbol('vue-ink.cursor');
-//# sourceMappingURL=context.js.map

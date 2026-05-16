@@ -29,6 +29,11 @@
 - [[renderer/static-dedup]] — why `<Static>` dedup happens in the renderer, not the component
 - [[renderer/layout-listeners]] — post-commit hook for Yoga-aware composables; the resize listener is now unconditional
 - [[renderer/screen-reader]] — aria-* props on Box/Text feed a separate walker when `isScreenReaderEnabled` is on
+- [[renderer/no-sfc-components]] — why internal components are `defineComponent + h()`, not `.vue` SFCs
+
+## Components
+
+- [[components/static-generics]] — why `<Static>` keeps `items: unknown[]` instead of going generic
 
 ## Composables
 

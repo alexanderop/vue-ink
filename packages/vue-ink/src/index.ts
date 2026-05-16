@@ -52,6 +52,7 @@ export {
 	Spacer,
 	Transform,
 	Static,
+	type Color,
 	type BoxProps,
 	type TextProps,
 	type NewlineProps,

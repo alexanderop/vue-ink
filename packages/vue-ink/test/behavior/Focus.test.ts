@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defineComponent, h, ref, watch } from 'vue';
+import { defineComponent, h, watch } from 'vue';
 import { render } from '@vue-ink/testing-library';
 import { Box, Text, useFocus, useFocusManager } from '../../src/index.ts';
 

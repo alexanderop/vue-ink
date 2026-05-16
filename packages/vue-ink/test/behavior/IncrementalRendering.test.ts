@@ -163,7 +163,7 @@ describe('incrementalRendering', () => {
 					);
 			},
 		});
-		const instance = renderIncremental(Demo, stdout, stdin);
+		renderIncremental(Demo, stdout, stdin);
 		await flush();
 		const framesBeforeShrink = stdout.frames.length;
 

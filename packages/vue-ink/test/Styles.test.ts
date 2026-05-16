@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { h, defineComponent } from 'vue';
-import { render, Box, Text } from '../src/index.ts';
+import { Box, Text } from '../src/index.ts';
 import { renderToString } from './helpers.ts';
 
 // styles.ts is an internal yoga-translation layer. Hit every branch by

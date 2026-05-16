@@ -1,1 +1,0 @@
-{"version":3,"file":"get-max-width.js","sourceRoot":"","sources":["../src/get-max-width.ts"],"names":[],"mappings":"AAAA,+DAA+D;AAC/D,OAAO,IAA+B,MAAM,aAAa,CAAC;AAE1D,MAAM,WAAW,GAAG,CAAC,QAAkB,EAAU,EAAE,CAClD,QAAQ,CAAC,gBAAgB,EAAE;IAC3B,QAAQ,CAAC,kBAAkB,CAAC,IAAI,CAAC,SAAS,CAAC;IAC3C,QAAQ,CAAC,kBAAkB,CAAC,IAAI,CAAC,UAAU,CAAC,CAAC;AAE9C,eAAe,WAAW,CAAC"}

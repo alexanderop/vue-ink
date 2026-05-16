@@ -1,10 +1,9 @@
 import chalk from 'chalk';
-import type { LiteralUnion } from 'type-fest';
-import { colorize, type ForegroundColorName } from '@vue-ink/core';
+import { colorize, type Color } from '@vue-ink/core';
 
 export type TextStyleFlags = {
-	color?: LiteralUnion<ForegroundColorName, string> | undefined;
-	backgroundColor?: LiteralUnion<ForegroundColorName, string> | undefined;
+	color?: Color | undefined;
+	backgroundColor?: Color | undefined;
 	dimColor?: boolean;
 	bold?: boolean;
 	italic?: boolean;

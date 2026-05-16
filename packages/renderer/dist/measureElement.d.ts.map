@@ -1,1 +1,0 @@
-{"version":3,"file":"measureElement.d.ts","sourceRoot":"","sources":["../src/measureElement.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,gBAAgB,EAAE,MAAM,sCAAsC,CAAC;AAE7E,MAAM,MAAM,oBAAoB,GAAG;IAClC,qFAAqF;IACrF,KAAK,EAAE,MAAM,CAAC;IACd,sFAAsF;IACtF,MAAM,EAAE,MAAM,CAAC;CACf,CAAC;AAeF;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;GAgCG;AACH,eAAO,MAAM,cAAc,GAC1B,QAAQ,gBAAgB,KACtB,oBAOF,CAAC"}

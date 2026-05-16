@@ -1,4 +1,4 @@
-import { defineComponent, h, type VNode } from 'vue';
+import { defineComponent, type VNode } from 'vue';
 import { render, Stdout } from '@vue-ink/testing-library';
 import { render as vueInkRender } from '@vue-ink/renderer';
 
