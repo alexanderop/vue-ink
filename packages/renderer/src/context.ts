@@ -11,7 +11,7 @@ export type CursorContext = {
 };
 
 export type AppContext = {
-	exit: (error?: Error) => void;
+	exit: (errorOrResult?: unknown) => void;
 	waitUntilRenderFlush: () => Promise<void>;
 };
 

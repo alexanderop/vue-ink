@@ -91,4 +91,23 @@ describe('useWindowSize behavior', () => {
 		// All composable-attached listeners detach on scope dispose — no leaks.
 		expect(stdout.listenerCount('resize')).toBe(0);
 	});
+
+	// Ported from repos/ink/test/terminal-resize.tsx — guards against the
+	// classic race where the OS delivers a SIGWINCH-driven resize event after
+	// the consumer already unmounted the app.
+	it('does not crash when stdout emits `resize` after unmount', async () => {
+		const Component = defineComponent({
+			setup() {
+				const { columns } = useWindowSize();
+				return () => h(Text, null, () => `cols:${columns.value}`);
+			},
+		});
+
+		const { stdout, waitUntilFlush, unmount } = render(Component);
+		await waitUntilFlush();
+		unmount();
+
+		stdout.columns = 33;
+		expect(() => stdout.emit('resize')).not.toThrow();
+	});
 });

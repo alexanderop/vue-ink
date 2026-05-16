@@ -160,8 +160,14 @@ export const createInputManager = ({
 		for (const event of events) {
 			if (typeof event === 'string') {
 				emitKeypress(event);
-			} else {
+			} else if (emitter.listenerCount('paste') > 0) {
 				emitter.emit('paste', event.paste);
+			} else {
+				// Fallback: when no usePaste consumer is mounted, deliver the
+				// inner paste payload to useInput as a regular keypress so
+				// terminals that send PASTE_START/END unsolicited (or tests that
+				// stub them) don't silently drop the content. Matches ink.
+				emitKeypress(event.paste);
 			}
 		}
 		schedulePendingFlush();

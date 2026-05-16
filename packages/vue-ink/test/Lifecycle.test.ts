@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { h, defineComponent, ref } from 'vue';
+import { h, defineComponent, onMounted, ref } from 'vue';
 import Yoga from 'yoga-layout';
 import stripAnsi from 'strip-ansi';
-import { render, Box, Text } from '../src/index.ts';
+import { render, Box, Text, useApp } from '../src/index.ts';
 import { createCaptureStream, flush } from './helpers.ts';
 
 describe('comments are invisible', () => {
@@ -67,6 +67,126 @@ describe('resize triggers a re-layout', () => {
 
 		instance.unmount();
 		expect(stdout.frames.length).toBeGreaterThan(before);
+	});
+});
+
+// Ported from repos/ink/test/exit.tsx. Ink runs these through node-pty
+// fixtures; vue-ink can call `useApp().exit(...)` directly inside a mounted
+// component and assert on `waitUntilExit()`'s settlement, no subprocess.
+describe('exit() and waitUntilExit() — exit value forwarding', () => {
+	const mountWithExit = (exitArg: () => unknown): ReturnType<typeof render> => {
+		const stdout = createCaptureStream(20);
+		const App = defineComponent({
+			setup() {
+				const app = useApp();
+				onMounted(() => {
+					app.exit(exitArg());
+				});
+				return () => h(Text, null, () => 'frame');
+			},
+		});
+		return render(App, { stdout, interactive: true });
+	};
+
+	it('exit() with no args resolves waitUntilExit() with undefined', async () => {
+		const instance = mountWithExit(() => undefined);
+		await expect(instance.waitUntilExit()).resolves.toBeUndefined();
+	});
+
+	it('exit(value) forwards the value through waitUntilExit()', async () => {
+		const instance = mountWithExit(() => 'hello from vue-ink');
+		await expect(instance.waitUntilExit()).resolves.toBe('hello from vue-ink');
+	});
+
+	it('exit(object) forwards the object identity through waitUntilExit()', async () => {
+		const payload = { hello: 'from vue-ink object' };
+		const instance = mountWithExit(() => payload);
+		await expect(instance.waitUntilExit()).resolves.toBe(payload);
+	});
+
+	it('exit(error) rejects waitUntilExit() with the error', async () => {
+		const boom = new Error('boom');
+		const instance = mountWithExit(() => boom);
+		await expect(instance.waitUntilExit()).rejects.toBe(boom);
+	});
+
+	it('unmount() without an explicit exit() resolves waitUntilExit() with undefined', async () => {
+		const stdout = createCaptureStream(20);
+		const App = defineComponent({
+			setup: () => () => h(Text, null, () => 'frame'),
+		});
+		const instance = render(App, { stdout, interactive: true });
+		await flush();
+		instance.unmount();
+		await expect(instance.waitUntilExit()).resolves.toBeUndefined();
+	});
+
+	it('exit() after unmount() is a no-op (idempotent)', async () => {
+		const stdout = createCaptureStream(20);
+		let captured: ReturnType<typeof useApp> | undefined;
+		const App = defineComponent({
+			setup() {
+				captured = useApp();
+				return () => h(Text, null, () => 'frame');
+			},
+		});
+		const instance = render(App, { stdout, interactive: true });
+		await flush();
+		instance.unmount();
+		// Should not throw, should not re-trigger any teardown side-effects.
+		expect(() => captured!.exit(new Error('late'))).not.toThrow();
+		await expect(instance.waitUntilExit()).resolves.toBeUndefined();
+	});
+
+	it('exit() twice keeps the first resolution (idempotent)', async () => {
+		const stdout = createCaptureStream(20);
+		const App = defineComponent({
+			setup() {
+				const app = useApp();
+				onMounted(() => {
+					app.exit('first');
+					app.exit('second');
+					app.exit(new Error('late error'));
+				});
+				return () => h(Text, null, () => 'frame');
+			},
+		});
+		const instance = render(App, { stdout, interactive: true });
+		await expect(instance.waitUntilExit()).resolves.toBe('first');
+	});
+
+	it('exit(error) followed by exit(value) still rejects (error wins)', async () => {
+		const stdout = createCaptureStream(20);
+		const boom = new Error('first-error');
+		const App = defineComponent({
+			setup() {
+				const app = useApp();
+				onMounted(() => {
+					app.exit(boom);
+					app.exit('ignored');
+				});
+				return () => h(Text, null, () => 'frame');
+			},
+		});
+		const instance = render(App, { stdout, interactive: true });
+		await expect(instance.waitUntilExit()).rejects.toBe(boom);
+	});
+
+	it('waitUntilExit() can be called multiple times and settles each caller', async () => {
+		const stdout = createCaptureStream(20);
+		const App = defineComponent({
+			setup() {
+				const app = useApp();
+				onMounted(() => {
+					app.exit('shared');
+				});
+				return () => h(Text, null, () => 'frame');
+			},
+		});
+		const instance = render(App, { stdout, interactive: true });
+		const [a, b] = await Promise.all([instance.waitUntilExit(), instance.waitUntilExit()]);
+		expect(a).toBe('shared');
+		expect(b).toBe('shared');
 	});
 });
 

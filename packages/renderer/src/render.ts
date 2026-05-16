@@ -722,7 +722,12 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	rootNode.onRender = requestRender;
 	rootNode.onComputeLayout = () => {
-		rootNode.yogaNode!.setWidth(getTerminalWidth());
+		// Guard: if a render-time throw has already torn the app down, the
+		// post-flush layout job can still be in Vue's queue. The yogaNode is
+		// freed in unmount(), so dereferencing it here would crash the process
+		// before the user ever sees the rendered error message.
+		if (!rootNode.yogaNode) return;
+		rootNode.yogaNode.setWidth(getTerminalWidth());
 	};
 
 	app.config.errorHandler = (err, _instance, info) => {

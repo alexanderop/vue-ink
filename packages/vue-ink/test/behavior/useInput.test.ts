@@ -140,4 +140,125 @@ describe('useInput', () => {
 		expect(events[0]!.input).toBe('a');
 		expect(events[0]!.key.meta).toBe(true);
 	});
+
+	// ── Ported gap-filling cases from repos/ink/test/hooks-use-input.tsx ──
+
+	it('handles ctrl + non-c character (e.g. ctrl+F = 0x06)', () => {
+		const events = captureWith(({ stdin }) => stdin.write(String.fromCharCode(0x06)));
+		expect(events).toHaveLength(1);
+		expect(events[0]!.input).toBe('f');
+		expect(events[0]!.key.ctrl).toBe(true);
+	});
+
+	it('handles meta + backspace (ESC + 0x7F)', () => {
+		const events = captureWith(({ stdin }) => stdin.write(`${ESC}${DEL_7F}`));
+		expect(events).toHaveLength(1);
+		expect(events[0]!.key.backspace).toBe(true);
+		expect(events[0]!.key.meta).toBe(true);
+	});
+
+	// ESC + O is the SS3 prefix used for F1–F4 in some terminals, so the
+	// parser holds the ESC pending more bytes. Once the disambiguation window
+	// expires it flushes as a meta+O event.
+	it('handles meta + O (ESC + O) after disambiguation window', async () => {
+		const captured: Array<{ input: string; key: Key }> = [];
+		const App = defineComponent({
+			setup() {
+				useInput((input, key) => {
+					captured.push({ input, key });
+				});
+				return () => h(Text, null, () => 'ready');
+			},
+		});
+		const { stdin, unmount } = render(App);
+		stdin.write(`${ESC}O`);
+		await new Promise((r) => setTimeout(r, 150));
+		unmount();
+		expect(captured.length).toBeGreaterThan(0);
+		expect(captured.at(-1)!.input).toBe('O');
+	});
+
+	it('handles option + return (ESC + \\r) as meta+return', () => {
+		const events = captureWith(({ stdin }) => stdin.write(`${ESC}${ENTER}`));
+		expect(events).toHaveLength(1);
+		expect(events[0]!.key.return).toBe(true);
+		expect(events[0]!.key.meta).toBe(true);
+	});
+
+	// vue-ink's parser delivers a multi-byte buffer that starts with \r as one
+	// chunk (input: "\rtest") rather than splitting it into a return event +
+	// literal characters the way ink does. This pins the current contract;
+	// matching ink's split would require parser changes.
+	it('delivers a pasted-buffer-with-leading-CR as a single chunk', () => {
+		const events = captureWith(({ stdin }) => stdin.write(`${ENTER}test`));
+		expect(events).toHaveLength(1);
+		expect(events[0]!.input).toBe(`${ENTER}test`);
+		expect(events[0]!.key.return).toBe(false);
+	});
+
+	// Same divergence as the CR case — multi-byte buffer with a control byte
+	// is delivered verbatim rather than split.
+	it('delivers a pasted-buffer-with-leading-tab as a single chunk', () => {
+		const events = captureWith(({ stdin }) => stdin.write(`${TAB}test`));
+		expect(events).toHaveLength(1);
+		expect(events[0]!.input).toBe(`${TAB}test`);
+		expect(events[0]!.key.tab).toBe(false);
+	});
+
+	// When no usePaste handler is mounted the input manager forwards the
+	// bracketed-paste payload to useInput as a regular keypress, matching ink.
+	it('useInput receives bracketed paste content when no usePaste handler is active', async () => {
+		const captured: Array<{ input: string; key: Key }> = [];
+		const App = defineComponent({
+			setup() {
+				useInput((input, key) => {
+					captured.push({ input, key });
+				});
+				return () => h(Text, null, () => 'ready');
+			},
+		});
+		const { stdin, unmount } = render(App);
+		stdin.write(`${ESC}[200~hello${ESC}[201~`);
+		await new Promise((r) => setTimeout(r, 150));
+		unmount();
+		expect(captured).toHaveLength(1);
+		expect(captured[0]!.input).toBe('hello');
+	});
+
+	// Negative tests — these used to crash the parser before the unknown-CSI
+	// branches were added. Asserting "no throw + at least one event" is enough
+	// to lock the regression.
+	it('does not crash on Ctrl+F1 (ESC[1;5P)', () => {
+		expect(() =>
+			captureWith(({ stdin }) => stdin.write(`${ESC}[1;5P`)),
+		).not.toThrow();
+	});
+
+	it('does not crash on an unmapped ctrl escape sequence (ESC[1;5I)', () => {
+		expect(() =>
+			captureWith(({ stdin }) => stdin.write(`${ESC}[1;5I`)),
+		).not.toThrow();
+	});
+
+	// Standalone ESC[ with no terminator: the parser flushes "[" as a literal
+	// input event after the disambiguation window expires (the leading ESC is
+	// consumed as a meta prefix and discarded since [ doesn't combine into a
+	// known sequence).
+	it('flushes a lone ESC[ prefix as literal "[" after the disambiguation window', async () => {
+		const captured: Array<{ input: string; key: Key }> = [];
+		const App = defineComponent({
+			setup() {
+				useInput((input, key) => {
+					captured.push({ input, key });
+				});
+				return () => h(Text, null, () => 'ready');
+			},
+		});
+		const { stdin, unmount } = render(App);
+		stdin.write(`${ESC}[`);
+		await new Promise((r) => setTimeout(r, 150));
+		unmount();
+		expect(captured).toHaveLength(1);
+		expect(captured[0]!.input).toBe('[');
+	});
 });
