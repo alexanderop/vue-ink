@@ -47,6 +47,7 @@
 
 - [[porting/from-react-ink]]
 - [[porting/api-tracker]] — flat ✅/❌ checklist of every ink API and where vue-ink implements it
+- [[porting/test-port-status]] — file-by-file map of ink's test suite to vue-ink's, with the remaining gaps called out
 
 ## Other
 

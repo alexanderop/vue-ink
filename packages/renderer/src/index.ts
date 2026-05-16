@@ -58,3 +58,24 @@ export {
 	type KittyFlagName,
 	type KittyKeyboardOptions,
 } from './kitty-keyboard.ts';
+// Cursor escape-sequence helpers (pure functions, no side-effects). Exposed
+// so internal tooling and tests can build the same byte sequences the
+// renderer emits without duplicating the logic.
+export {
+	buildCursorOnlySequence,
+	buildCursorSuffix,
+	buildReturnToBottom,
+	buildReturnToBottomPrefix,
+	cursorPositionChanged,
+	hideCursorEscape,
+	showCursorEscape,
+	type CursorOnlyInput,
+} from './cursor-helpers.ts';
+// Bare frame-overwrite primitive. Not used by `render()` itself (which has
+// its own bespoke paint loop with `<Static>` and synchronized-update hooks)
+// but available for tooling that wants the ink-parity behaviour.
+export {
+	default as logUpdate,
+	type LogUpdate,
+	type LogUpdateOptions,
+} from './log-update.ts';

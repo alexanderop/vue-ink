@@ -210,6 +210,11 @@ export const createInputManager = ({
 			stdin.setRawMode!(false);
 			stopListening();
 			if (typeof stdin.pause === 'function') stdin.pause();
+			// Without unref(), node keeps the process alive waiting on stdin
+			// even after we've torn down — see ink's App.tsx disableRawMode.
+			if (typeof (stdin as { unref?: () => void }).unref === 'function') {
+				(stdin as { unref: () => void }).unref();
+			}
 		}
 	};
 
@@ -232,6 +237,9 @@ export const createInputManager = ({
 		clearPendingTimer();
 		if (rawModeUsers > 0 && isRawModeSupported) {
 			stdin.setRawMode!(false);
+			if (typeof (stdin as { unref?: () => void }).unref === 'function') {
+				(stdin as { unref: () => void }).unref();
+			}
 		}
 		if (pasteModeUsers > 0) {
 			stdout.write('\x1b[?2004l');

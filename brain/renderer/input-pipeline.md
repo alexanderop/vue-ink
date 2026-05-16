@@ -28,6 +28,13 @@ and Shift+Tab.
    Reference-counts both `setRawMode` and `setBracketedPasteMode` so
    concurrent `useInput`/`usePaste` callers don't fight over the TTY.
 
+   **Must `stdin.unref()` on release.** Both the `setRawMode(false)` and
+   `destroy()` paths call `(stdin as any).unref?.()`. Without this, node's
+   event loop keeps the process alive forever after the renderer unmounts
+   — `setRawMode(false)` only pauses stdin, it doesn't remove its
+   ref-count. Mirrors ink's `App.tsx` teardown. Removing the unref breaks
+   every subprocess test in `Exit.test.ts` (they hang past the timeout).
+
 ## Pending-escape timer
 
 A bare `Esc` keypress vs. `Esc[...` is indistinguishable at the byte level
@@ -75,7 +82,7 @@ plain-text event as a separate `(input, Key)` emission, which matches how
 stdin actually delivers keystrokes — one chunk per keypress in interactive
 mode.
 
-Property tests at `packages/vue-ink/test/input-parser-properties.test.ts`
+Property tests at `packages/vue-ink/test/InputParserProperties.test.ts`
 encode this: chunking invariance is asserted **after coalescing adjacent
 plain-text events**. The round-trip property (events + flushed pending
 reconstruct the input) holds universally.

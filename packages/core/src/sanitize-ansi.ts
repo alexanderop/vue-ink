@@ -1,49 +1,31 @@
-// Strip control characters that would desync the terminal cursor while
-// preserving SGR escape sequences (colors, bold, etc.). Adapted from ink (MIT)
-// — https://github.com/vadimdemedes/ink — without the full tokenizer; the
-// state machine below covers the SGR-only case our render path emits.
+// Strip ANSI escape sequences that would conflict with Ink's layout.
+// Preserved: SGR sequences (colors, bold, etc. — final byte 'm') and
+// OSC control strings (hyperlinks, etc.).
+// Stripped: cursor movement, screen clearing, DCS/PM/APC/SOS, lone ESC,
+// C0/C1 controls (except TAB, LF, and CRLF pairs).
 //
-// Preserved:
-//   - Printable characters
-//   - TAB (\t), LF (\n), and CRLF
-//   - SGR sequences: `ESC [ params* intermediates* m`
-// Stripped:
-//   - Bell (\x07), backspace (\x08), other C0 controls (\x00-\x1F except \t/\n)
-//   - DEL (\x7F)
-//   - Lone CR not followed by LF
-//   - CSI sequences whose final byte is not 'm' (cursor moves, clears, etc.)
-//   - Lone ESC and other escape sequence forms (OSC/DCS not in scope yet)
-const CSI_PARAM = (code: number) => code >= 0x30 && code <= 0x3f;
-const CSI_INTERMEDIATE = (code: number) => code >= 0x20 && code <= 0x2f;
-const CSI_FINAL = (code: number) => code >= 0x40 && code <= 0x7e;
+// Adapted from ink (MIT) — https://github.com/vadimdemedes/ink — uses the
+// shared `tokenizeAnsi` so behaviour stays aligned with the canonical parser.
+// Diverges from ink in one place: ink leaves the text token's bytes intact,
+// while vue-ink also strips C0 controls (lone CR, BEL, backspace, DEL) inside
+// text tokens so a literal `'a\x07b'` collapses to `'ab'`. This matches the
+// historical vue-ink sanitizer behaviour the renderer relied on.
+import { hasAnsiControlCharacters, tokenizeAnsi } from './ansi-tokenizer.ts';
 
-// Matches any byte the state machine below would act on: C0 controls except
-// \t/\n (range covers \r and ESC too) and DEL. Bails out for clean strings —
-// the common case on this hot path (squash-text-nodes runs on every render).
+const sgrParametersRegex = /^[\d:;]*$/;
+
+// Matches every C0 control we want to strip inside a text token (everything
+// below 0x20 except TAB/LF, plus DEL). Used as a fast-path bail when the
+// string is genuinely clean.
 const NEEDS_SANITIZE = /[\x00-\x08\x0B-\x1F\x7F]/;
 
-const sanitizeAnsi = (text: string): string => {
+const stripC0FromText = (text: string): string => {
 	if (!NEEDS_SANITIZE.test(text)) return text;
 
 	let out = '';
 
 	for (let i = 0; i < text.length; i += 1) {
 		const ch = text[i]!;
-
-		if (ch === '\x1B' && text[i + 1] === '[') {
-			let j = i + 2;
-			while (j < text.length && CSI_PARAM(text.charCodeAt(j))) j += 1;
-			while (j < text.length && CSI_INTERMEDIATE(text.charCodeAt(j))) j += 1;
-			const finalChar = text[j];
-			if (finalChar !== undefined && CSI_FINAL(finalChar.charCodeAt(0))) {
-				if (finalChar === 'm') out += text.slice(i, j + 1);
-				i = j;
-				continue;
-			}
-			// Malformed CSI — drop the lone ESC and keep parsing.
-			continue;
-		}
-
 		const code = ch.charCodeAt(0);
 
 		if (ch === '\r') {
@@ -61,6 +43,37 @@ const sanitizeAnsi = (text: string): string => {
 	}
 
 	return out;
+};
+
+const sanitizeAnsi = (text: string): string => {
+	if (!hasAnsiControlCharacters(text)) {
+		return stripC0FromText(text);
+	}
+
+	let output = '';
+
+	for (const token of tokenizeAnsi(text)) {
+		if (token.type === 'osc') {
+			output += token.value;
+			continue;
+		}
+
+		if (token.type === 'text') {
+			output += stripC0FromText(token.value);
+			continue;
+		}
+
+		if (
+			token.type === 'csi' &&
+			token.finalCharacter === 'm' &&
+			token.intermediateString === '' &&
+			sgrParametersRegex.test(token.parameterString)
+		) {
+			output += token.value;
+		}
+	}
+
+	return output;
 };
 
 export default sanitizeAnsi;

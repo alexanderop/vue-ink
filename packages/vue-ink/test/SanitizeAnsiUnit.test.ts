@@ -29,17 +29,17 @@ describe('sanitizeAnsi (unit)', () => {
 		expect(sanitizeAnsi('a\rb')).toBe('ab');
 	});
 
-	it('drops a malformed CSI ESC and resumes parsing the rest of the bytes', () => {
-		// ESC [ 1 — string ends before a final char arrives. The ESC is dropped
-		// and the loop falls through to handle subsequent characters as normal
-		// printables (so '[' and '1' survive).
-		expect(sanitizeAnsi('a\x1b[1')).toBe('a[1');
+	it('drops a malformed CSI ESC and the rest of the buffer', () => {
+		// ESC [ 1 — string ends before a final char arrives. The tokenizer
+		// treats the remainder from the ESC onward as a single `invalid` token
+		// (matches ink semantics), and the sanitizer drops it whole.
+		expect(sanitizeAnsi('a\x1b[1')).toBe('a');
 	});
 
-	it('drops a lone ESC that is not part of a CSI sequence', () => {
-		// ESC followed by something other than '[' — falls through the C0
-		// control branch (ESC = 0x1B is below 0x20 and not \t/\n).
-		expect(sanitizeAnsi('a\x1bb')).toBe('ab');
+	it('drops an ESC + final-byte form as a complete escape sequence', () => {
+		// ESC b — 'b' is in the final-byte range (0x30..0x7E), so the tokenizer
+		// reads it as a valid `esc` token. The sanitizer drops esc tokens.
+		expect(sanitizeAnsi('a\x1bb')).toBe('a');
 	});
 
 	it('drops a CSI with non-m final (cursor moves)', () => {

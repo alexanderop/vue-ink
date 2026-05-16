@@ -5,6 +5,7 @@ import {
 	applyStyles,
 	createNode,
 	createTextNode,
+	freeYogaSubtree,
 	insertBeforeNode,
 	removeChildNode,
 	setAttribute,
@@ -163,6 +164,9 @@ const { createApp } = createRenderer<HostNode, HostElement>({
 		const parent = child.parentNode;
 		if (parent) {
 			removeChildNode(parent, child);
+			// Real removal (not a keyed move) — free this subtree's yoga handles
+			// now instead of waiting for the root's freeRecursive at unmount.
+			freeYogaSubtree(child);
 			scheduleRender(parent);
 		}
 	},

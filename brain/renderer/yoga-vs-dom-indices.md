@@ -14,7 +14,7 @@ Any `v-for` (or any time Vue mounts a Fragment with comment anchors, including c
 
 ## Tests
 
-`packages/vue-ink/test/box.test.ts` — "handles Fragment children (v-for) without crashing yoga" — guards the regression.
+`packages/vue-ink/test/Box.test.ts` — "handles Fragment children (v-for) without crashing yoga" — guards the regression.
 
 ## Related
 

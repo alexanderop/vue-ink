@@ -25,5 +25,5 @@ pattern, or the WASM heap will abort on first mount.
 
 ## Tests
 
-- `packages/vue-ink/test/newline.test.ts` — Newline inside Text
-- `packages/vue-ink/test/transform.test.ts` — nested Transforms compose
+- `packages/vue-ink/test/Newline.test.ts` — Newline inside Text
+- `packages/vue-ink/test/Transform.test.ts` — nested Transforms compose

@@ -54,6 +54,7 @@ export type RenderReusableOptions = {
 	stdin?: NodeJS.ReadStream;
 	exitOnCtrlC?: boolean;
 	interactive?: boolean;
+	debug?: boolean;
 };
 
 // Thin wrappers over the public `renderToString` so the test suite stays
@@ -90,6 +91,7 @@ export const renderReusable = async (
 		stdin: options.stdin,
 		exitOnCtrlC: options.exitOnCtrlC,
 		interactive: options.interactive ?? true,
+		debug: options.debug,
 	});
 	await flush();
 	return {

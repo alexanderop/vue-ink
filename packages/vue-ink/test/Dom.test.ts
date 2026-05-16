@@ -4,6 +4,7 @@ import {
 	createNode,
 	createTextNode,
 	appendChildNode,
+	freeYogaSubtree,
 	insertBeforeNode,
 	removeChildNode,
 	setAttribute,
@@ -133,13 +134,25 @@ describe('removeChildNode', () => {
 		expect(child.parentNode).toBeUndefined();
 	});
 
-	it('frees a removed subtree (yoga nodes are released)', () => {
+	it('preserves the yoga node on detach so keyed moves can reinsert it', () => {
+		// Vue's keyed-move path is `remove from current parent` + `insertBefore`.
+		// `insertBeforeNode` reads `child.yogaNode` to rewire the yoga tree, so
+		// detach must leave that handle intact.
+		const parent = createNode('ink-box');
+		const child = createNode('ink-text');
+		appendChildNode(parent, child);
+		removeChildNode(parent, child);
+		expect(child.yogaNode).toBeDefined();
+	});
+
+	it('frees a subtree explicitly via freeYogaSubtree', () => {
 		const parent = createNode('ink-box');
 		const child = createNode('ink-box');
 		const grandchild = createNode('ink-text');
 		appendChildNode(parent, child);
 		appendChildNode(child, grandchild);
 		removeChildNode(parent, child);
+		freeYogaSubtree(child);
 		expect(child.yogaNode).toBeUndefined();
 	});
 });

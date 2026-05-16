@@ -190,15 +190,17 @@ export const removeChildNode = (node: DOMElement, removeNode: DOMNode): void => 
 	if (node.nodeName === 'ink-text' || node.nodeName === 'ink-virtual-text') {
 		markNodeAsDirty(node);
 	}
-
-	freeYogaSubtree(removeNode);
 };
 
 // Frees `node.yogaNode` and any descendant yoga nodes. Yoga's freeRecursive
 // detaches and frees children, but DOM-only descendants (text, virtual-text,
 // comments) own no yoga node and aren't on the yoga tree — they're released
 // when the DOM node is GC'd.
-const freeYogaSubtree = (node: DOMNode): void => {
+//
+// Call this only on real removals — never inside appendChildNode/insertBeforeNode's
+// "detach from current parent" step, since Vue uses that path for keyed moves
+// and freeing here would leave the moved node without a yoga node on reinsert.
+export const freeYogaSubtree = (node: DOMNode): void => {
 	if (node.yogaNode) {
 		node.yogaNode.freeRecursive();
 		node.yogaNode = undefined;

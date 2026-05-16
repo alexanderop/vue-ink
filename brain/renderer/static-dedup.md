@@ -62,5 +62,5 @@ and `Promise.resolve().then` — all of them produced the same race in the
   `renderStaticSubtrees`; we trust the existing `appendChildNode` discipline.
 - [[output-hot-path]] — Static's per-paint full re-render means it benefits
   directly from the `Output.get()` optimizations.
-- `packages/vue-ink/test/static.test.ts` — pins the "items rendered once
+- `packages/vue-ink/test/Static.test.ts` — pins the "items rendered once
   even across live-frame repaints" guarantee.

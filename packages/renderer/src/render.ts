@@ -37,6 +37,11 @@ import {
 	type KittyKeyboardOptions,
 	type KittyFlagName,
 } from './kitty-keyboard.ts';
+import {
+	buildCursorSuffix,
+	buildReturnToBottomPrefix,
+	cursorPositionChanged,
+} from './cursor-helpers.ts';
 
 export type RenderOptions = {
 	stdout?: NodeJS.WriteStream;
@@ -515,35 +520,6 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	const hasOnRender = typeof options.onRender === 'function';
 
-	const buildCursorSuffix = (
-		visibleLineCount: number,
-		position: CursorPosition | undefined,
-	): string => {
-		if (!position) return '';
-		const moveUp = visibleLineCount - position.y;
-		return (
-			(moveUp > 0 ? ansiEscapes.cursorUp(moveUp) : '') +
-			ansiEscapes.cursorTo(position.x) +
-			ansiEscapes.cursorShow
-		);
-	};
-
-	// Before any erase or rewrite, if the last paint left the cursor visible
-	// inside the frame, hide it and return to the bottom so erase math (which
-	// assumes the cursor sits below the frame) works correctly.
-	const buildReturnToBottom = (
-		previousLineCount: number,
-		previousPosition: CursorPosition | undefined,
-	): string => {
-		if (!previousPosition) return '';
-		const down = previousLineCount - 1 - previousPosition.y;
-		return (
-			ansiEscapes.cursorHide +
-			(down > 0 ? ansiEscapes.cursorDown(down) : '') +
-			ansiEscapes.cursorTo(0)
-		);
-	};
-
 	const doRender = (): void => {
 		if (unmounted) return;
 		const startedAt = hasOnRender ? performance.now() : 0;
@@ -592,9 +568,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			return;
 		}
 
-		const cursorChanged =
-			cursorPosition?.x !== lastCursorPosition?.x ||
-			cursorPosition?.y !== lastCursorPosition?.y;
+		const cursorChanged = cursorPositionChanged(cursorPosition, lastCursorPosition);
 		// Re-emit if anything visible to the user changed — frame text, static
 		// suffix, or just the cursor position/visibility.
 		if (text === lastOutput && newStaticFrame.length === 0 && !cursorChanged) {
@@ -614,7 +588,11 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 			// `returnPrefix` is non-empty only when the previous paint left the
 			// cursor inside the frame; it hides the cursor and walks back down to
 			// the bottom-left so the erase/diff math below is correct.
-			const returnPrefix = buildReturnToBottom(lastLineCount, lastCursorPosition);
+			const returnPrefix = buildReturnToBottomPrefix(
+				lastCursorPosition !== undefined,
+				lastLineCount,
+				lastCursorPosition,
+			);
 			// Skip BSU/ESU when an outer `writeAboveFrame` already opened a
 			// synchronized frame — nested pairs read as "close" on most terms.
 			const openSync = syncFrameDepth === 0 ? BSU : '';

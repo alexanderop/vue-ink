@@ -514,6 +514,9 @@ importers:
       '@vue/compiler-sfc':
         specifier: ^3.5.13
         version: 3.5.34
+      ansi-escapes:
+        specifier: ^7.3.0
+        version: 7.3.0
       boxen:
         specifier: ^8.0.1
         version: 8.0.1
@@ -535,6 +538,9 @@ importers:
       slice-ansi:
         specifier: ^7.1.2
         version: 7.1.2
+      string-width:
+        specifier: ^8.2.0
+        version: 8.2.1
       strip-ansi:
         specifier: ^7.1.0
         version: 7.2.0

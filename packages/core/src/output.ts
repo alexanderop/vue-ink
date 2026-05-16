@@ -183,6 +183,23 @@ export default class Output {
 					}
 
 					let offsetX = x;
+					// Wide chars (CJK, emoji) occupy two cells: leading cell + a
+					// trailing placeholder with value ''. If our write lands on the
+					// placeholder, the leading half of the existing wide char must
+					// be replaced with a space — otherwise the terminal renders a
+					// half-visible glyph. Mirrors ink's output.ts boundary cleanup.
+					if (
+						currentLine[offsetX]?.value === '' &&
+						offsetX > 0 &&
+						this.caches.getStringWidth(currentLine[offsetX - 1]?.value ?? '') > 1
+					) {
+						currentLine[offsetX - 1] = {
+							type: 'char',
+							value: ' ',
+							fullWidth: false,
+							styles: [],
+						};
+					}
 					for (let c = 0; c < charsLen; c += 1) {
 						const character = characters[c]!;
 						currentLine[offsetX] = character;
@@ -198,6 +215,17 @@ export default class Output {
 							}
 						}
 						offsetX += characterWidth;
+					}
+					// Symmetric cleanup on the right: if the write ended on the
+					// leading cell of a wide char, its trailing placeholder is now
+					// orphaned and must become a space.
+					if (currentLine[offsetX]?.value === '') {
+						currentLine[offsetX] = {
+							type: 'char',
+							value: ' ',
+							fullWidth: false,
+							styles: [],
+						};
 					}
 					if (offsetX > rowEnds[rowIndex]!) rowEnds[rowIndex] = offsetX;
 				}
