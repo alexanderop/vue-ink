@@ -21,6 +21,28 @@
 					}
 				]
 			}
+		],
+		"PreCompact": [
+			{
+				"matcher": "auto",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "$CLAUDE_PROJECT_DIR/.claude/hooks/extract-brain.sh"
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"matcher": "",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "$CLAUDE_PROJECT_DIR/.claude/hooks/queue-brain-extract.sh"
+					}
+				]
+			}
 		]
 	}
 }
