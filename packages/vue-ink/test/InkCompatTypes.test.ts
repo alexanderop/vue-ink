@@ -1,5 +1,10 @@
 import { describe, it, expectTypeOf } from 'vitest';
-import type { WindowSize, AnimationResult, DOMElement } from '../src/index.ts';
+import type {
+	WindowSize,
+	AnimationResult,
+	DOMElement,
+	BoxMetrics,
+} from '../src/index.ts';
 
 // Parity surface for porters: ink exposes these names directly. Renaming
 // (or omitting) them forces every "import { WindowSize, AnimationResult,
@@ -36,5 +41,17 @@ describe('ink-compat type aliases', () => {
 		// fail at the top of this file.
 		const _el = null as unknown as DOMElement;
 		void _el;
+	});
+
+	it('BoxMetrics matches ink: plain numbers, no `hasMeasured`', () => {
+		// Ink exposes `BoxMetrics = { width, height, left, top }`
+		// (`repos/ink/src/hooks/use-box-metrics.ts`). The reactive vue-ink
+		// return shape lives under `UseBoxMetricsReturn`; this alias is the
+		// non-reactive ink-shaped value type used by porters.
+		const m: BoxMetrics = { width: 10, height: 5, left: 1, top: 2 };
+		expectTypeOf(m.width).toEqualTypeOf<number>();
+		expectTypeOf(m.height).toEqualTypeOf<number>();
+		expectTypeOf(m.left).toEqualTypeOf<number>();
+		expectTypeOf(m.top).toEqualTypeOf<number>();
 	});
 });

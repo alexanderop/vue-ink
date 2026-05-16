@@ -39,6 +39,7 @@ export {
 	type UseWindowSizeReturn,
 	type UseAnimationOptions,
 	type UseAnimationReturn,
+	type BoxMetrics,
 	type BoxMetricsTarget,
 	type UseBoxMetricsReturn,
 	type CursorPosition,

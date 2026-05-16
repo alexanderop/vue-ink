@@ -451,7 +451,11 @@ Numbered, ordered by frequency of hitting them:
     before passing it into the renderer config.
 17. **Using `++` anywhere oxlint can see it.** `no-plusplus` is on. Use
     `x += 1` (we have many lint rules that React-flavoured code trips —
-    `no-param-reassign`, `prefer-template`, etc.).
+    `no-param-reassign`, `prefer-template`, `prefer-destructuring`,
+    etc.). In particular, write `expect(...).toBe(\`${prefix}text\`)`
+    instead of `prefix + 'text'`, and `const [, csiToken] = tokens`
+    instead of `const csiToken = tokens[1]` — both trip pre-commit lint
+    on new test files.
 18. **Forgetting `flushVueOnly()` vs `flush()` in tests.**
     `flushVueOnly` drains Vue's microtask queue only; `flush` also
     waits out the paint throttle window. Pick the right one based on

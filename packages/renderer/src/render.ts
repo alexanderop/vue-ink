@@ -103,6 +103,12 @@ export type RenderOptions = {
 export type RenderMetrics = {
 	frame: number;
 	durationMs: number;
+	/**
+	 * Alias of `durationMs` — kept for ink compatibility. Ink's `onRender`
+	 * callback receives `{ renderTime }` (`repos/ink/src/ink.tsx:211,544`),
+	 * so direct ports can keep reading the same field.
+	 */
+	renderTime: number;
 	lineCount: number;
 	output: string;
 };
@@ -129,6 +135,13 @@ export type Instance = {
 	waitUntilExit: () => Promise<unknown>;
 	waitUntilRenderFlush: () => Promise<void>;
 	clear: () => void;
+	/**
+	 * Unmount the current app and remove the internal instance for this stdout.
+	 * Useful for advanced cases where you need `render()` to create a fresh
+	 * instance for the same stream without leaving terminal state behind.
+	 * Alias of {@link Instance.unmount} — present for ink compatibility.
+	 */
+	cleanup: () => void;
 };
 
 // One live renderer per stdout: reusing the same stream creates two renderers
@@ -149,8 +162,55 @@ export const _flushActiveInstances = async (): Promise<void> => {
 };
 /* v8 ignore stop */
 
-type ConsoleMethod = 'log' | 'info' | 'warn' | 'error' | 'debug' | 'trace';
-const CONSOLE_METHODS: readonly ConsoleMethod[] = ['log', 'info', 'warn', 'error', 'debug', 'trace'];
+// Mirrors the surface that ink's `patch-console` dep covers. stderr-bound
+// methods get routed through `writeStderr` (warn/error); everything else
+// goes through `writeStdout`. Keep this list in sync with `node:console`'s
+// public methods so console output doesn't bleed through the live frame.
+type ConsoleMethod =
+	| 'log'
+	| 'info'
+	| 'warn'
+	| 'error'
+	| 'debug'
+	| 'trace'
+	| 'dir'
+	| 'dirxml'
+	| 'table'
+	| 'group'
+	| 'groupCollapsed'
+	| 'groupEnd'
+	| 'assert'
+	| 'count'
+	| 'countReset'
+	| 'time'
+	| 'timeEnd'
+	| 'timeLog'
+	| 'profile'
+	| 'profileEnd'
+	| 'timeStamp';
+const CONSOLE_METHODS: readonly ConsoleMethod[] = [
+	'log',
+	'info',
+	'warn',
+	'error',
+	'debug',
+	'trace',
+	'dir',
+	'dirxml',
+	'table',
+	'group',
+	'groupCollapsed',
+	'groupEnd',
+	'assert',
+	'count',
+	'countReset',
+	'time',
+	'timeEnd',
+	'timeLog',
+	'profile',
+	'profileEnd',
+	'timeStamp',
+];
 type ConsoleSubscriber = {
 	writeStdout: (data: string) => void;
 	writeStderr: (data: string) => void;
@@ -158,27 +218,42 @@ type ConsoleSubscriber = {
 const consoleSubscribers = new Set<ConsoleSubscriber>();
 let originalConsoleMethods: Partial<Record<ConsoleMethod, Console[ConsoleMethod]>> | undefined;
 
+// Only `warn` and `error` route to stderr; everything else (including
+// `assert`, `count`, `time*`, `dir*`, `table`, `group*`, `profile*`,
+// `timeStamp`) goes through stdout. Matches Node's defaults for the
+// formatted methods; the timing/grouping methods don't have a stderr
+// equivalent in Node either.
+const STDERR_CONSOLE_METHODS: ReadonlySet<ConsoleMethod> = new Set(['warn', 'error']);
+
+// The expanded `Console[ConsoleMethod]` union has incompatible call
+// signatures (e.g. `table` vs `log`), so TS infers an unsatisfiable
+// intersection on assignment. Route through `unknown` — the runtime
+// behavior (forward everything to formatWithOptions) is uniform.
+type AnyConsoleFn = (...args: unknown[]) => void;
+
 const installConsolePatch = (): void => {
 	if (originalConsoleMethods) return;
 	originalConsoleMethods = {};
+	const consoleAsRecord = console as unknown as Record<ConsoleMethod, AnyConsoleFn>;
 	for (const method of CONSOLE_METHODS) {
 		originalConsoleMethods[method] = console[method];
-		const isStderrChannel = method === 'warn' || method === 'error';
-		console[method] = ((...args: unknown[]) => {
+		const isStderrChannel = STDERR_CONSOLE_METHODS.has(method);
+		consoleAsRecord[method] = (...args: unknown[]) => {
 			const text = `${formatWithOptions({ colors: true }, ...args)}\n`;
 			for (const sub of consoleSubscribers) {
 				if (isStderrChannel) sub.writeStderr(text);
 				else sub.writeStdout(text);
 			}
-		}) as Console[ConsoleMethod];
+		};
 	}
 };
 
 const uninstallConsolePatch = (): void => {
 	if (!originalConsoleMethods) return;
+	const consoleAsRecord = console as unknown as Record<ConsoleMethod, AnyConsoleFn>;
 	for (const method of CONSOLE_METHODS) {
 		if (originalConsoleMethods[method]) {
-			console[method] = originalConsoleMethods[method]!;
+			consoleAsRecord[method] = originalConsoleMethods[method] as AnyConsoleFn;
 		}
 	}
 	originalConsoleMethods = undefined;
@@ -262,10 +337,13 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 
 	const existing = instances.get(writeStream);
 	if (existing) {
-		stderr.write(
+		// Match ink (`repos/ink/src/render.ts:265-273`): warn and return the
+		// existing instance WITHOUT applying the new tree. Write the warning
+		// directly to the real stderr so an existing alternate-screen renderer
+		// cannot swallow it via patchConsole.
+		process.stderr.write(
 			'Warning: render() was called again for the same stdout before the previous instance was unmounted. Reusing stdout across multiple render() calls is unsupported. Call unmount() first.\n',
 		);
-		existing.rerender(component);
 		return existing;
 	}
 
@@ -685,10 +763,12 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 	const emitRenderMetrics = (text: string, lineCount: number, startedAt: number): void => {
 		if (!hasOnRender) return;
 		frameCounter += 1;
+		const elapsed = performance.now() - startedAt;
 		try {
 			options.onRender!({
 				frame: frameCounter,
-				durationMs: performance.now() - startedAt,
+				durationMs: elapsed,
+				renderTime: elapsed,
 				lineCount,
 				output: text,
 			});
@@ -947,6 +1027,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		},
 		waitUntilRenderFlush,
 		clear: eraseCurrentFrame,
+		cleanup: () => unmount(),
 	};
 	instances.set(writeStream, instance);
 	activeInstances.add(instance);

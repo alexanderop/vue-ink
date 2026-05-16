@@ -43,6 +43,20 @@ export interface UseBoxMetricsReturn {
 	readonly hasMeasured: ShallowRef<boolean>;
 }
 
+/**
+ * Plain layout metrics of a box element, matching ink's `BoxMetrics` shape
+ * (`repos/ink/src/hooks/use-box-metrics.ts`). All positions are relative to
+ * the element's parent. Re-exported as an ink-compat alias for porters who
+ * import `BoxMetrics` directly. The reactive vue-ink return shape is
+ * {@link UseBoxMetricsReturn}.
+ */
+export type BoxMetrics = {
+	readonly width: number;
+	readonly height: number;
+	readonly left: number;
+	readonly top: number;
+};
+
 const isDOMElement = (value: unknown): value is DOMElement => {
 	if (typeof value !== 'object' || value === null) return false;
 	const name = (value as { nodeName?: unknown }).nodeName;

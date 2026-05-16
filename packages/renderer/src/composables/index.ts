@@ -36,6 +36,7 @@ export {
 } from './useAnimation/index.ts';
 export {
 	useBoxMetrics,
+	type BoxMetrics,
 	type BoxMetricsTarget,
 	type UseBoxMetricsReturn,
 } from './useBoxMetrics/index.ts';

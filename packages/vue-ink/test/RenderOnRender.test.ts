@@ -31,6 +31,10 @@ describe('onRender callback', () => {
 		expect(calls.at(-1)!.lineCount).toBeGreaterThan(0);
 		expect(calls.at(-1)!.output).toContain('n=2');
 		expect(calls.at(-1)!.durationMs).toBeGreaterThanOrEqual(0);
+		// Ink parity: `renderTime` is emitted as an alias of `durationMs`
+		// so ports of `onRender({ renderTime }) => …` keep working.
+		expect(calls.at(-1)!.renderTime).toBeGreaterThanOrEqual(0);
+		expect(calls.at(-1)!.renderTime).toBe(calls.at(-1)!.durationMs);
 	});
 
 	it('reports a line count that matches the actual output', async () => {
