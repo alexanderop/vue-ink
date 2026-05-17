@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { defineComponent, h } from 'vue';
-import { render } from '../src/index.ts';
+import { defineComponent, h, onMounted, ref } from 'vue';
+import { render, useInput } from '../src/index.ts';
 import { createCaptureStream, createFakeStdin, flush } from './helpers.ts';
 
 // Ported from repos/ink/src/ink.tsx → initKittyKeyboard + confirmKittySupport.
@@ -88,6 +88,57 @@ describe("kitty keyboard — mode: 'auto'", () => {
 		instance.unmount();
 		// And no pop-mode escape either, since we never enabled it.
 		expect(stdout.frames.join('')).not.toContain(`${ESC}[<u`);
+	});
+
+	it('delivers user keystrokes typed during the detection window to a useInput handler that mounts after', async () => {
+		const stdin = createFakeStdin({ isTTY: true });
+		const stdout = createCaptureStream(20, { isTTY: true });
+		const seen: string[] = [];
+		const Listener = defineComponent({
+			setup: () => {
+				useInput((input) => {
+					seen.push(input);
+				});
+				return () => h('ink-text', null, 'ready');
+			},
+		});
+		// Defer useInput registration past the kitty detection window so the
+		// cleanup path has nowhere to deliver the user's keystroke unless it
+		// goes through inputManager's buffer. Mirrors the slow `async setup()`
+		// boundary that makes the original `stdin.unshift()` strategy drop
+		// input. See brain/renderer/kitty-detection.md.
+		const Demo = defineComponent({
+			setup: () => {
+				const ready = ref(false);
+				onMounted(() => {
+					setTimeout(() => {
+						ready.value = true;
+					}, 300);
+				});
+				return () =>
+					h('ink-box', null, ready.value ? [h(Listener)] : [h('ink-text', null, 'wait')]);
+			},
+		});
+		const instance = render(Demo, {
+			stdout,
+			stdin,
+			exitOnCtrlC: false,
+			kittyKeyboard: { mode: 'auto' },
+		});
+		await flush();
+
+		// User presses a key inside the 200ms detection window. The listener
+		// is not mounted yet, so the byte lands in the kitty detection buffer.
+		stdin.emitData('q');
+		expect(seen).toEqual([]);
+
+		// Wait past both the 200ms detection timeout (cleanup hands 'q' to
+		// inputManager.bufferInput) and the 300ms listener-mount delay.
+		await new Promise((resolve) => setTimeout(resolve, 400));
+		await flush();
+
+		expect(seen).toEqual(['q']);
+		instance.unmount();
 	});
 
 	it('skips auto-detect entirely when interactive is false', async () => {

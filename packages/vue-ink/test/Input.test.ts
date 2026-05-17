@@ -339,3 +339,56 @@ describe('createInputManager — bracketed paste', () => {
 		expect(stdoutWrites).toContain('\x1b[?2004l');
 	});
 });
+
+const drainMicrotasks = (): Promise<void> =>
+	new Promise((resolve) => queueMicrotask(() => resolve()));
+
+describe('createInputManager — bufferInput', () => {
+	it('queues bytes received before startListening and replays them once raw mode turns on', async () => {
+		const { mgr, events } = mkMgr();
+		mgr.bufferInput(Uint8Array.from(Buffer.from('a', 'utf8')));
+		// Nothing listening yet → no events.
+		expect(events).toEqual([]);
+		mgr.setRawMode(true);
+		// Drain is deferred so listeners attached alongside setRawMode see it.
+		await drainMicrotasks();
+		expect(events.map((e) => e.input)).toEqual(['a']);
+		mgr.destroy();
+	});
+
+	it('feeds bytes straight through the parser when already listening', () => {
+		const { mgr, events } = mkMgr();
+		mgr.setRawMode(true);
+		mgr.bufferInput(Uint8Array.from(Buffer.from('x', 'utf8')));
+		expect(events.map((e) => e.input)).toEqual(['x']);
+		mgr.destroy();
+	});
+
+	it('is a no-op for empty input', async () => {
+		const { mgr, events } = mkMgr();
+		mgr.bufferInput(new Uint8Array());
+		mgr.setRawMode(true);
+		await drainMicrotasks();
+		expect(events).toEqual([]);
+		mgr.destroy();
+	});
+
+	it('drops queued bytes on destroy() so a later listener does not get stale input', async () => {
+		const stdin = createFakeStdin();
+		const stdout = makeStdout();
+		const mgr = createInputManager({
+			stdin,
+			stdout,
+			exitOnCtrlC: false,
+			onCtrlC: vi.fn(),
+		});
+		mgr.bufferInput(Uint8Array.from(Buffer.from('z', 'utf8')));
+		mgr.destroy();
+		// Re-subscribe after destroy. The bytes buffered before destroy must
+		// not be replayed.
+		const seen: string[] = [];
+		mgr.emitter.on('input', (input: string) => seen.push(input));
+		await drainMicrotasks();
+		expect(seen).toEqual([]);
+	});
+});

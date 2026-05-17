@@ -102,6 +102,16 @@ return useEmitterListener(emitter, 'paste', handler, {
 `onAttach`/`onDetach` are where TTY mode toggles, focus claims, etc. happen.
 Keep the listener function pure.
 
+**Ordering trap.** `useEmitterListener` runs `onAttach()` **before**
+`emitter.on(event, listener)` (see `_internal/use-emitter-listener.ts:33-38`).
+Anything `onAttach` triggers that synchronously emits `event` will fire to a
+listener that hasn't been registered yet and the consumer drops the event.
+Mirrors Node's `stdin.resume()` semantics — buffered data is emitted on the
+next tick, never synchronously from the call that flips listening on. Defer
+any drain/replay with `queueMicrotask`. The kitty-detection pendingInput
+replay in `input.ts:185-204` is the canonical example; see
+[[../renderer/kitty-detection]].
+
 ## Test patterns
 
 VueUse's gold standard: mount the composable in a real `setup()` via a

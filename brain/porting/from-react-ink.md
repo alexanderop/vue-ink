@@ -92,7 +92,7 @@ training data.
 | `waitUntilExit()`         | `waitUntilExit()`        | ✓ — see hang gotcha below |
 | `waitUntilRenderFlush()`  | `waitUntilRenderFlush()` | ✓        |
 | `clear()`                 | `clear()`                | ✓        |
-| `cleanup()`               | **removed**              | ⚠️ use `unmount()` — alias was removed in cleanup pass |
+| `cleanup()`               | `cleanup()`              | ✓ alias of `unmount()`, kept for ink parity (`render.ts:1060`) |
 
 ### Test helpers
 

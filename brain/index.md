@@ -30,6 +30,9 @@
 - [[renderer/layout-listeners]] — post-commit hook for Yoga-aware composables; the resize listener is now unconditional
 - [[renderer/screen-reader]] — aria-* props on Box/Text feed a separate walker when `isScreenReaderEnabled` is on
 - [[renderer/no-sfc-components]] — why internal components are `defineComponent + h()`, not `.vue` SFCs
+- [[renderer/kitty-detection]] — `auto` mode listens on stdin before the input pipeline mounts; startup-window race
+- [[renderer/console-patch]] — `patchConsole` subscribers fan out to every active renderer, not just the matching stdout
+- [[renderer/ci-detection]] — `isCiEnv()` treats `CI='false'` as in-CI; falsy-string parsing is missing
 
 ## Components
 
@@ -48,6 +51,7 @@
 - [[porting/from-react-ink]]
 - [[porting/api-tracker]] — flat ✅/❌ checklist of every ink API and where vue-ink implements it
 - [[porting/test-port-status]] — file-by-file map of ink's test suite to vue-ink's, with the remaining gaps called out
+- [[porting/inlined-deps-lose-edge-cases]] — where vue-ink inlines what ink imports as a tiny package, the edge cases get dropped
 
 ## Other
 

@@ -88,6 +88,12 @@ export type InputManager = {
 	isRawModeSupported: boolean;
 	setRawMode: (enable: boolean) => void;
 	setBracketedPasteMode: (enable: boolean) => void;
+	// Replay bytes through the same parser `useInput` consumes. Used by the
+	// kitty `auto` detection path to hand back user keystrokes that landed in
+	// its detection-window listener — `stdin.unshift()` would drop them if no
+	// `data` listener is attached yet (e.g. no `useInput`/`useFocus` mounted
+	// during the 200ms window). See brain/renderer/kitty-detection.md.
+	bufferInput: (bytes: Uint8Array) => void;
 	destroy: () => void;
 };
 
@@ -114,6 +120,9 @@ export const createInputManager = ({
 	let pasteModeUsers = 0;
 	let listening = false;
 	let pendingEscapeTimer: NodeJS.Timeout | undefined;
+	// Bytes handed in via `bufferInput()` before `startListening()` fires.
+	// Drained through `onData` once the first listener attaches.
+	let pendingInput: Buffer[] = [];
 
 	const emitKeypress = (sequence: string): void => {
 		const parsed = parseKeypress(sequence);
@@ -178,6 +187,30 @@ export const createInputManager = ({
 		if (listening) return;
 		stdin.on('data', onData);
 		listening = true;
+		if (pendingInput.length > 0) {
+			const queued = pendingInput;
+			pendingInput = [];
+			// Defer the drain so any emitter listener attaching alongside this
+			// `setRawMode(true)` call (e.g. `useEmitterListener` runs
+			// `onAttach()` before `emitter.on()`) is registered before the
+			// replayed events fire. Mirrors Node's own stream semantics —
+			// `stdin.resume()` emits buffered data on the next tick, not
+			// synchronously.
+			queueMicrotask(() => {
+				if (!listening) return;
+				for (const chunk of queued) onData(chunk);
+			});
+		}
+	};
+
+	const bufferInput = (bytes: Uint8Array): void => {
+		if (bytes.length === 0) return;
+		const chunk = Buffer.from(bytes);
+		if (listening) {
+			onData(chunk);
+			return;
+		}
+		pendingInput.push(chunk);
 	};
 
 	const stopListening = (): void => {
@@ -246,6 +279,7 @@ export const createInputManager = ({
 		}
 		rawModeUsers = 0;
 		pasteModeUsers = 0;
+		pendingInput = [];
 		stopListening();
 		emitter.removeAllListeners();
 	};
@@ -255,6 +289,7 @@ export const createInputManager = ({
 		isRawModeSupported,
 		setRawMode,
 		setBracketedPasteMode,
+		bufferInput,
 		destroy,
 	};
 };

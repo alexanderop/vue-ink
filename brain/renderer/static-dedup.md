@@ -29,24 +29,35 @@ and `Promise.resolve().then` — all of them produced the same race in the
 - `<Static>` is a thin wrapper around `<ink-box internal_static …>` that
   always emits every item. No internal `index` ref, no `watch`, no
   `onMounted`/`onUpdated`.
-- `render()` keeps `lastStaticOutput`. On each `doRender`:
+- `render()` keeps `lastStaticOutput`. On each `doRender`
+  (`packages/renderer/src/render.ts:625-636`):
   ```ts
-  const staticOutput = renderStaticSubtrees(rootNode, terminalWidth);
-  const newStatic = staticOutput.startsWith(lastStaticOutput)
-      ? staticOutput.slice(lastStaticOutput.length)
-      : staticOutput;
-  lastStaticOutput = staticOutput;
+  let newStatic = '';
+  if (staticOutput !== lastStaticOutput) {
+    if (staticOutput.startsWith(lastStaticOutput)) {
+      newStatic = staticOutput.slice(lastStaticOutput.length);
+    } else if (!staticDivergenceWarned) {
+      staticDivergenceWarned = true;
+      stderr.write('vue-ink: <Static> items mutated non-append-only …\n');
+    }
+    lastStaticOutput = staticOutput;
+  }
   ```
 - Only `newStatic` is written above the live frame. Repeated paints with the
   same items produce `newStatic === ''` and emit nothing extra.
+- **Non-prefix mutations are skipped, not re-emitted.** Terminal scrollback
+  can't be erased, so re-emitting the full new output would duplicate the
+  survivors that already live above the live frame. We swallow the divergent
+  emission and warn once on stderr. The `lastStaticOutput` snapshot is still
+  updated so the next append-only growth resumes diffing from the new
+  baseline.
 
 ## Invariants worth not breaking
 
 - Items are **append-only**. Mutating earlier items in place (or replacing
-  the array with a reordered copy) breaks the prefix-match, so the renderer
-  falls back to emitting the entire current static output. That's correct
-  but verbose — call it out in the component docstring if anyone tries to
-  use `<Static>` for live-editable lists.
+  the array with a reordered copy) trips the non-prefix path: the divergent
+  emission is dropped and a one-shot stderr warning fires. Don't use
+  `<Static>` for live-editable lists.
 - The static walk renders each `internal_static` subtree to its **own** Yoga
   layout pass (`renderSingleStatic`). The subtrees use `position: 'absolute'`
   so they don't take space in the parent flex layout; calling

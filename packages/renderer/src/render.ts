@@ -931,12 +931,15 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 					timer = undefined;
 				}
 				stdin.off('data', onResponseData);
-				// Re-emit any user-typed bytes that arrived during detection so
-				// they aren't lost from the normal input pipeline. Strip just the
-				// protocol response bytes and any trailing partial match.
+				// Hand user-typed bytes that landed during detection back to the
+				// input pipeline. `bufferInput` queues them until `useInput`/etc.
+				// triggers `startListening()`, which is safer than `stdin.unshift`
+				// — the latter silently drops the bytes if no `data` listener is
+				// attached when it fires (e.g. a slow `async setup()` boundary,
+				// or no `useInput` mounted at all). See brain/renderer/kitty-detection.md.
 				const remaining = stripKittyQueryResponses(responseBuffer);
-				if (remaining.length > 0 && typeof stdin.unshift === 'function') {
-					stdin.unshift(Uint8Array.from(remaining));
+				if (remaining.length > 0) {
+					inputManager.bufferInput(Uint8Array.from(remaining));
 				}
 			};
 			const onResponseData = (chunk: Buffer | string): void => {
