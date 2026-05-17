@@ -1013,6 +1013,36 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		await new Promise<void>((resolve) => {
 			process.nextTick(resolve);
 		});
+		// Match ink (`repos/ink/src/ink.tsx:922-928`): await an empty stream
+		// write so the writable's drain callback fires before we resolve. On
+		// slow / backpressured streams the nextTick yield above can resolve
+		// while bytes are still queued in the kernel buffer. Guard against
+		// torn-down or non-writable streams (process exit, closed pipe,
+		// test-stream without `write`). Skip the stderr leg — vue-ink writes
+		// to stderr only via `useStderr().write` and patchConsole, both of
+		// which use the same throttle + commit pipeline as stdout, so the
+		// stdout barrier subsumes them.
+		const stream = writeStream as NodeJS.WriteStream & {
+			writable?: boolean;
+			writableEnded?: boolean;
+			destroyed?: boolean;
+			_writableState?: unknown;
+			writableLength?: number;
+		};
+		const canWrite =
+			!unmounted &&
+			typeof stream.write === 'function' &&
+			!stream.destroyed &&
+			!stream.writableEnded &&
+			(stream.writable ?? true);
+		const hasWritableState =
+			stream._writableState !== undefined ||
+			stream.writableLength !== undefined;
+		if (canWrite && hasWritableState) {
+			await new Promise<void>((resolve) => {
+				stream.write('', () => resolve());
+			});
+		}
 	};
 
 	instance = {

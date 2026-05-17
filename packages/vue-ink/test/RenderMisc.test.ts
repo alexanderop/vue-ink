@@ -170,10 +170,18 @@ describe('render(): debug vs TTY mode', () => {
 
 	it('defaults stdout to process.stdout when not provided', async () => {
 		// Cover `options.stdout ?? process.stdout` fallback. We swap process.stdout
-		// temporarily so the test doesn't pollute the test runner output.
+		// temporarily so the test doesn't pollute the test runner output. The
+		// mock honors the `Writable.write(chunk, [enc], cb)` contract by
+		// invoking the callback — `waitUntilRenderFlush()` now performs a
+		// barrier write (ink parity, `repos/ink/src/ink.tsx:922-928`) and would
+		// hang forever against a callback-eating mock.
 		const stdoutSpy = vi
 			.spyOn(process.stdout, 'write')
-			.mockImplementation(() => true);
+			.mockImplementation((_chunk: unknown, encOrCb?: unknown, maybeCb?: unknown) => {
+				const cb = typeof encOrCb === 'function' ? encOrCb : maybeCb;
+				if (typeof cb === 'function') (cb as () => void)();
+				return true;
+			});
 		const App = defineComponent({
 			setup: () => () => h(Text, null, () => 'x'),
 		});

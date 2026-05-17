@@ -15,7 +15,13 @@ export const createCaptureStream = (
 	const frames: string[] = [];
 	const stream = new Writable({
 		write(chunk, _enc, cb) {
-			frames.push(chunk.toString());
+			// Skip zero-length writes — the renderer emits an empty
+			// `write('', cb)` from `waitUntilRenderFlush()` as a drain
+			// barrier (mirrors ink at `repos/ink/src/ink.tsx:922-928`).
+			// Counting that as a frame would invalidate any test that
+			// asserts on `frames.length`.
+			const text = chunk.toString();
+			if (text.length > 0) frames.push(text);
 			cb();
 		},
 	}) as Writable & {

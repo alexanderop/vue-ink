@@ -6,6 +6,11 @@ explains *how* to translate idioms; this one is the flat checklist.
 
 Verified on 2026-05-16 against `repos/ink/` and `packages/*/src/`.
 
+(Last sweep: 2026-05-16 — added `cleanup()` alias, `BoxMetrics` type
+re-export, `renderTime` on `RenderMetrics`, ink-parity second-call
+semantics for `render()`, expanded `patchConsole` surface, and a
+real stream-write barrier in `waitUntilRenderFlush()`.)
+
 Legend:
 
 - ✅ shipped
@@ -142,7 +147,7 @@ Details in [[from-react-ink#hooks-composables-the-three-shape-changes]].
 | `waitUntilExit()`            | `waitUntilExit()`        | ✅     |
 | `waitUntilRenderFlush()`     | `waitUntilRenderFlush()` | ✅     |
 | `clear()`                    | `clear()`                | ✅     |
-| `cleanup()`                  | —                        | ❌     | alias removed; call `unmount()` |
+| `cleanup()`                  | `cleanup()`              | ✅     | Alias of `unmount()`; ink parity. |
 
 ### `RenderOptions`
 
@@ -153,8 +158,8 @@ Details in [[from-react-ink#hooks-composables-the-three-shape-changes]].
 | `stderr`                  | `stderr`                 | ✅     |
 | `debug`                   | `debug`                  | ✅     |
 | `exitOnCtrlC`             | `exitOnCtrlC`            | ✅     |
-| `patchConsole`            | `patchConsole`           | ✅     |
-| `onRender`                | `onRender`               | ✅     |
+| `patchConsole`            | `patchConsole`           | ✅     | Hand-patched; covers `log/info/warn/error/debug/trace/dir/dirxml/table/group/groupCollapsed/groupEnd/assert/count/countReset/time/timeEnd/timeLog/profile/profileEnd/timeStamp`. Only `warn`/`error` go through stderr; everything else routes to stdout. |
+| `onRender`                | `onRender`               | ✅     | Payload exposes both `renderTime` (ink-compat) and `durationMs` (vue-ink name); they're aliases for the same `performance.now()` delta. |
 | `isScreenReaderEnabled`   | `isScreenReaderEnabled`  | ✅     |
 | `maxFps`                  | `maxFps`                 | ✅     |
 | `incrementalRendering`    | `incrementalRendering`   | ✅     |
@@ -216,6 +221,7 @@ are aliases; the vue-ink-flavoured names remain the primary public types.
 |----------------------------|--------------------------|--------|-------|
 | `WindowSize`               | `WindowSize`             | ✅     | Plain `{ columns: number; rows: number }`. Distinct from `UseWindowSizeReturn` (two `ShallowRef`s). |
 | `AnimationResult`          | `AnimationResult`        | ✅     | Alias for `UseAnimationReturn`. |
+| `BoxMetrics`               | `BoxMetrics`             | ✅     | Plain `{ width, height, left, top }` numbers. Distinct from `UseBoxMetricsReturn` (per-field `ShallowRef`s plus `hasMeasured`). |
 | `DOMElement`               | `DOMElement`             | ✅     | Re-exported from `@vue-ink/core` via the renderer barrel. |
 
 ---

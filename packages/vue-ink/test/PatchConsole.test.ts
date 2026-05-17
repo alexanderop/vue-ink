@@ -70,6 +70,54 @@ describe('patchConsole', () => {
 		instance.unmount();
 	});
 
+	it('routes console.dir through the frame instead of bleeding through stdout', async () => {
+		const stdout = createCaptureStream(20);
+		const App = defineComponent({
+			setup: () => () => h(Text, null, () => 'frame'),
+		});
+		const instance = render(App, { stdout, interactive: true });
+		await flush();
+		console.dir({ foo: 1 });
+		await flush();
+		instance.unmount();
+
+		const joined = stripAnsi(stdout.frames.join(''));
+		// `console.dir({foo:1})` formats to `{ foo: 1 }`; assert it landed in
+		// the captured stdout via the write-above-frame helper (i.e. the
+		// patch covers dir, not just log/info/etc.).
+		expect(joined).toContain('foo');
+		expect(joined).toContain('frame');
+	});
+
+	it('routes the timing/grouping/table methods through stdout', async () => {
+		const stdout = createCaptureStream(20);
+		const App = defineComponent({
+			setup: () => () => h(Text, null, () => 'frame'),
+		});
+		const instance = render(App, { stdout, interactive: true });
+		await flush();
+		// Each of these methods exists on the global console; before the
+		// patch was expanded they wrote directly to the underlying stream,
+		// corrupting the live frame.
+		console.table([{ a: 1 }]);
+		console.group('grp');
+		console.groupCollapsed('grp2');
+		console.groupEnd();
+		console.count('c');
+		console.countReset('c');
+		console.time('t');
+		console.timeEnd('t');
+		console.dirxml({ x: 1 });
+		await flush();
+		instance.unmount();
+
+		const joined = stripAnsi(stdout.frames.join(''));
+		// `console.table([{a: 1}])` produces an ASCII table containing the
+		// key name; if it bled past the patch, it would have been written
+		// directly to process.stdout instead of the capture stream.
+		expect(joined).toContain('a');
+	});
+
 	it('reference-counts patches so nested render() calls do not break each other', async () => {
 		const stdoutA = createCaptureStream(20);
 		const stdoutB = createCaptureStream(20);

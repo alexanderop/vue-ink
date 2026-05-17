@@ -1,3 +1,4 @@
+import { Writable } from 'node:stream';
 import { describe, it, expect } from 'vitest';
 import { h, defineComponent, ref } from 'vue';
 import stripAnsi from 'strip-ansi';
@@ -64,6 +65,51 @@ describe('waitUntilRenderFlush()', () => {
 		counter.value = 5;
 		await appCtx!.waitUntilRenderFlush();
 		expect(stripAnsi(stdout.frames.at(-1) ?? '')).toContain('n=5');
+
+		instance.unmount();
+	});
+
+	it('blocks until the stream-write callback has fired (drain semantics, ink parity)', async () => {
+		// Build a Writable that defers its callback to the next macrotask.
+		// If `waitUntilRenderFlush()` only awaits `process.nextTick`, it
+		// resolves while this stream's bytes are still in flight; the assert
+		// below catches that regression.
+		const frames: string[] = [];
+		let pendingCb: (() => void) | undefined;
+		let drainCallbackFired = false;
+		const slow = new Writable({
+			write(chunk, _enc, cb) {
+				frames.push(chunk.toString());
+				// Defer the callback by a macrotask. The renderer writes its
+				// own frames here too; only flag the barrier write (empty
+				// payload) so the per-paint writes don't false-positive.
+				if (chunk.length === 0) {
+					pendingCb = () => {
+						drainCallbackFired = true;
+						cb();
+					};
+					setTimeout(() => pendingCb?.(), 5);
+				} else {
+					cb();
+				}
+			},
+		}) as Writable & { columns: number; isTTY: boolean; frames: string[] };
+		slow.columns = 20;
+		slow.isTTY = false;
+		slow.frames = frames;
+
+		const App = defineComponent({
+			setup: () => () => h(Text, null, () => 'frame'),
+		});
+		const instance = render(App, {
+			stdout: slow as unknown as NodeJS.WriteStream,
+			interactive: true,
+		});
+		// Use the instance directly — the barrier write fires inside
+		// `waitUntilRenderFlush()` itself, so by the time the promise
+		// resolves the stream callback must have been invoked.
+		await instance.waitUntilRenderFlush();
+		expect(drainCallbackFired).toBe(true);
 
 		instance.unmount();
 	});
