@@ -7,8 +7,12 @@ import { createCaptureStream, createFakeStdin, flush } from './helpers.ts';
 // Ported from repos/ink/test/errors.tsx. Vue's failure mode differs from
 // React's ErrorBoundary — vue-ink installs `app.config.errorHandler` which
 // erases the half-painted frame, writes the stack to stderr, and unmounts.
+// See the `// what this catches:` line above each `it` block for the
+// specific failure mode it guards.
 
 describe('render error handling', () => {
+	// what this catches: a thrown setup() error must reach stderr (with
+	// the "vue-ink render error" header) and the app must unmount.
 	it('writes the thrown setup error to stderr and tears the app down', async () => {
 		const stdout = createCaptureStream(20);
 		const stderr = createCaptureStream(20);
@@ -35,6 +39,9 @@ describe('render error handling', () => {
 	// error and waitUntilExit is unused". The renderer attaches a noop catch
 	// handler to the internal exit promise so consumers who never call
 	// waitUntilExit() don't crash the process when a render throws.
+	// what this catches: a render that throws without an awaited
+	// waitUntilExit() must NOT trigger Node's unhandledRejection (which
+	// could crash the host process on `--unhandled-rejections=strict`).
 	it('does not emit unhandledRejection when render throws and waitUntilExit is unused', async () => {
 		const stdout = createCaptureStream(20);
 		const stderr = createCaptureStream(20);
@@ -67,6 +74,9 @@ describe('render error handling', () => {
 		}
 	});
 
+	// what this catches: raw mode that was turned on before a thrown
+	// error must be turned back off during teardown. Regression would
+	// leave the user's terminal stuck in raw mode after a crash.
 	it('disables raw mode when a component throws after enabling it', async () => {
 		const stdout = createCaptureStream(20);
 		const stderr = createCaptureStream(20);
