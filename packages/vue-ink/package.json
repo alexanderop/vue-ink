@@ -70,6 +70,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "catalog:",
+		"@types/react": "^19.2.0",
 		"@vitest/coverage-v8": "catalog:",
 		"@vue-ink/core": "workspace:^",
 		"@vue-ink/testing-library": "workspace:^",
@@ -80,7 +81,9 @@
 		"cli-boxes": "^4.0.1",
 		"fast-check": "^4.8.0",
 		"indent-string": "^5.0.0",
+		"ink": "^7.0.3",
 		"node-pty": "^1.0.0",
+		"react": "^19.2.0",
 		"slice-ansi": "^7.1.2",
 		"string-width": "^8.2.0",
 		"strip-ansi": "^7.1.0",
