@@ -53,6 +53,7 @@
 - [[testing/subprocess-ci-env]] — PTY fixtures must delete CI/BUILD_NUMBER/RUN_ID, not override them
 - [[testing/hoist-pure-helpers]] — top-of-file helpers Claude keeps reinventing inside test bodies
 - [[testing/pnpm-filter-name]] — `pnpm --filter <name>` resolves package names, not folder paths
+- [[testing/property-tests]] — when fast-check pays back; bugs it found; recurring patterns
 
 ## Porting
 
