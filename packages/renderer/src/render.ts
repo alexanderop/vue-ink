@@ -43,12 +43,28 @@ import {
 	cursorPositionChanged,
 } from './cursor-helpers.ts';
 
+/**
+ * Configuration for {@link render}. All fields are optional — sensible
+ * defaults are inferred from the surrounding terminal and environment.
+ */
 export type RenderOptions = {
+	/** Stream to paint frames into. Defaults to `process.stdout`. */
 	stdout?: NodeJS.WriteStream;
+	/** Stream to read keystrokes from. Defaults to `process.stdin`. */
 	stdin?: NodeJS.ReadStream;
+	/** Stream for `useStderr().write()`. Defaults to `process.stderr`. */
 	stderr?: NodeJS.WriteStream;
+	/**
+	 * Append every frame instead of erasing the previous one. Useful for
+	 * post-mortem inspection of how a UI evolved — pipe to a file and scroll.
+	 */
 	debug?: boolean;
+	/**
+	 * Unmount the app when Ctrl+C is received on a raw-mode stdin. Default:
+	 * `true`. Set to `false` to intercept Ctrl+C in a `useInput` handler.
+	 */
 	exitOnCtrlC?: boolean;
+	/** Kitty keyboard protocol detection / opt-in. See {@link KittyKeyboardOptions}. */
 	kittyKeyboard?: KittyKeyboardOptions;
 	/**
 	 * Force interactive (`true`) or non-interactive (`false`) rendering. By
@@ -100,7 +116,12 @@ export type RenderOptions = {
 	incrementalRendering?: boolean;
 };
 
+/**
+ * Payload passed to the {@link RenderOptions.onRender} callback after each
+ * committed paint. Mirrors ink's `RenderMetrics` shape for drop-in porters.
+ */
 export type RenderMetrics = {
+	/** Monotonically increasing frame index, starting at `0`. */
 	frame: number;
 	/**
 	 * Time spent rendering this frame, in milliseconds. Matches ink's
@@ -108,7 +129,9 @@ export type RenderMetrics = {
 	 * ports of `onRender({ renderTime }) => …` work unchanged.
 	 */
 	renderTime: number;
+	/** Number of terminal lines the frame occupies after layout. */
 	lineCount: number;
+	/** The fully composed frame string, including ANSI escapes. */
 	output: string;
 };
 
@@ -130,8 +153,14 @@ const isCiEnv = (): boolean => {
 	);
 };
 
+/**
+ * Handle returned by {@link render}. Use it to swap the root component,
+ * unmount the app, await exit, or clear the live frame from outside.
+ */
 export type Instance = {
+	/** Replace the mounted root with a new component, preserving the terminal session. */
 	rerender: (component: Component) => void;
+	/** Tear down the app and release the terminal. Resolves any pending `waitUntilExit`. */
 	unmount: () => void;
 	/**
 	 * Resolves when the app unmounts. If `useApp().exit(value)` was called the
@@ -139,7 +168,12 @@ export type Instance = {
 	 * rejects it. Plain `unmount()` resolves with `undefined`.
 	 */
 	waitUntilExit: () => Promise<unknown>;
+	/**
+	 * Resolves once any pending throttled paint has flushed and the underlying
+	 * `stdout.write` callback has fired. Use this in tests instead of polling.
+	 */
 	waitUntilRenderFlush: () => Promise<void>;
+	/** Erase the current frame from the terminal without unmounting. */
 	clear: () => void;
 	/**
 	 * Unmount the current app and remove the internal instance for this stdout.

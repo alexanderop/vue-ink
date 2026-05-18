@@ -1,5 +1,10 @@
-// Kitty keyboard protocol flags.
-// @see https://sw.kovidgoyal.net/kitty/keyboard-protocol/
+/**
+ * Bitmask values for the Kitty progressive keyboard enhancement protocol.
+ * Combine the flag names you care about (most apps want just
+ * `disambiguateEscapeCodes`) and the runtime ORs them into the wire value.
+ *
+ * @see https://sw.kovidgoyal.net/kitty/keyboard-protocol/
+ */
 export const kittyFlags = {
 	disambiguateEscapeCodes: 1,
 	reportEventTypes: 2,
@@ -8,6 +13,7 @@ export const kittyFlags = {
 	reportAssociatedText: 16,
 } as const;
 
+/** A single Kitty keyboard protocol flag name — the keys of {@link kittyFlags}. */
 export type KittyFlagName = keyof typeof kittyFlags;
 
 export const resolveKittyFlags = (flags: KittyFlagName[]): number => {
@@ -24,8 +30,14 @@ export const enableKittyKeyboard = (flags: KittyFlagName[]): string =>
 	`\x1b[>${resolveKittyFlags(flags)}u`;
 export const disableKittyKeyboard = (): string => '\x1b[<u';
 
-// Kitty modifier bits in the modifier parameter of CSI u sequences.
-// Note: the wire value is (modifiers - 1) — caller is expected to subtract 1.
+/**
+ * Modifier bits used in the modifier parameter of CSI `u` sequences. Useful
+ * if you parse Kitty CSI sequences directly; vue-ink's normalized
+ * {@link Key} record exposes the same bits as named booleans.
+ *
+ * Note: the wire value is `modifiers - 1` — callers are expected to subtract
+ * one before sending or comparing against terminal output.
+ */
 export const kittyModifiers = {
 	shift: 1,
 	alt: 2,
@@ -37,14 +49,23 @@ export const kittyModifiers = {
 	numLock: 128,
 } as const;
 
+/**
+ * Options for the Kitty keyboard protocol negotiation in {@link RenderOptions.kittyKeyboard}.
+ */
 export type KittyKeyboardOptions = {
-	// 'auto' (default): try to detect support by querying the terminal.
-	// 'enabled': force enable.
-	// 'disabled': never enable.
+	/**
+	 * - `auto` (default): probe the terminal at startup and enable only if
+	 *   the response indicates support.
+	 * - `enabled`: force-enable without probing. Useful if you know the
+	 *   terminal supports it and want to skip the startup query.
+	 * - `disabled`: never enable. Stays on the legacy keypress pipeline.
+	 */
 	mode?: 'auto' | 'enabled' | 'disabled';
-
-	// Protocol flags to request from the terminal. Defaults to
-	// ['disambiguateEscapeCodes'] if omitted.
+	/**
+	 * Protocol flags to request from the terminal. Defaults to
+	 * `['disambiguateEscapeCodes']` — the minimum useful upgrade over the
+	 * legacy pipeline.
+	 */
 	flags?: KittyFlagName[];
 };
 

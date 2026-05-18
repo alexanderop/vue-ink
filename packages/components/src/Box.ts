@@ -11,6 +11,12 @@ import { buildBoxProps } from './helpers/box-props.ts';
 import { buildAccessibility } from './helpers/accessibility.ts';
 import { useScreenReader } from './helpers/use-screen-reader.ts';
 
+/**
+ * Props for {@link Box}. Every Yoga flex / layout style from `Styles`
+ * is accepted (sizing, padding, margin, flex, gap, border, overflow, …),
+ * plus the `aria-*` set below for screen-reader output. `textWrap` is
+ * excluded — wrap mode belongs on {@link TextProps} instead.
+ */
 export type BoxProps = Omit<Styles, 'textWrap'> & {
 	/** Label announced to screen readers in place of the Box's children. */
 	'aria-label'?: string;

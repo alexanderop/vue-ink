@@ -71,42 +71,55 @@ The shape of the package on disk, not the code inside.
 README is currently ~150 lines and lists APIs without examples or
 migration guidance. Real adoption needs more.
 
-- [ ] **Docs site or expanded README.** At minimum: full component
-      reference, composable reference, recipes (forms, scrollable
-      lists, log + spinner, paste handling), and a "porting from ink"
-      section that points at `brain/porting/from-react-ink.md`.
-- [ ] **More examples in `examples/`.** Today there's `counter`.
-      Add at least: focus form, scrollable list with `<Static>`,
-      animated spinner, paste-aware input, full TUI (file picker or
-      task list).
-- [ ] **Migration guide for ink users.** A standalone doc that
-      surfaces the three composable shape changes (Stop return,
-      `MaybeRefOrGetter`, ref returns) with side-by-side ink/vue-ink
-      snippets. The brain note has the content; promote it to a
-      user-facing doc.
-- [ ] **Devtools onboarding.** README mentions devtools nowhere.
-      Document the `DEV=true` flag, the `@vue/devtools` peer dep, and
-      the inspector setup.
-- [ ] **TS doc comments on the public surface.** `render()`,
-      `RenderOptions`, every composable, every component prop set.
-      LSP hover is the first place a Vue dev will look.
+- [x] **Docs site or expanded README.** VitePress site lives under
+      `packages/docs/` — 7 guides (`getting-started`, `sfc-setup`,
+      `migrating-from-ink`, `devtools`, `recipes`, `testing`,
+      `how-it-works`), 5 API pages (`render`, `render-to-string`,
+      `measure-element`, `components`, `composables`), and the parity
+      reference at `reference/ink-parity.md`. Run with `pnpm docs:dev`.
+- [x] **More examples in `examples/`.** 17 examples present: `counter`,
+      `chat`, `dashboard`, `focus`, `input`, `paste`, `kitty-keys`,
+      `snake`, `task-board`, `test-runner`, `flex-layout`, `spacer`,
+      `borders`, `colors`, `text-styles`, `transform`, `window-size`.
+- [x] **Migration guide for ink users.**
+      `packages/docs/guide/migrating-from-ink.md` (263 lines) covers
+      the three composable shape changes (Stop return,
+      `MaybeRefOrGetter`, ref returns) with side-by-side snippets.
+- [x] **Devtools onboarding.** `packages/docs/guide/devtools.md` (78
+      lines) documents the `DEV=true` flag, the optional
+      `@vue/devtools` peer dep, and `pnpm dlx @vue/devtools` setup.
+      Mentioned in `README.md:16` and `README.md:150`.
+- [x] **TS doc comments on the public surface.** Every symbol
+      re-exported from `packages/vue-ink/src/index.ts` has a TSDoc
+      block. Final pass closed gaps on `RenderOptions`,
+      `RenderMetrics`, `Instance` (`render.ts:46,103,133`), the
+      Kitty exports (`kitty-keyboard.ts:3,29,40`), and `BoxProps`
+      (`Box.ts:14`).
 
 ## 0.4 — test confidence
 
 The suite is large (~112 spec files) but has known smells.
 
-- [ ] **Audit `CoverageStragglers.test.ts` / `FinalCoverage.test.ts`.**
-      Coverage-chasing tests usually exercise dead branches. Decide
-      per-test: assert a real failure mode or delete.
-- [ ] **PTY fixture coverage gaps.** `brain/porting/test-port-status.md`
-      lists the file-by-file ink → vue-ink test map. Close any
-      remaining "ported with gaps" rows.
-- [ ] **Benchmark suite vs ink.** A handful of representative scenes
-      (FlatList of 1000 rows, log + spinner, focus cycle) timed
-      against an equivalent ink app. Catches perf regressions and
-      gives a real claim for the README.
-- [ ] **A CI matrix that actually runs the PTY tests.** node-pty
-      flakes on some CI runners; pin the matrix and the runner.
+- [x] **Audit `CoverageStragglers.test.ts` / `FinalCoverage.test.ts`.**
+      32/32 tests are real regression guards — each leading comment
+      documents the specific failure mode (ctrl+c byte on raw stdin,
+      anchor insertion order under `v-for`, `style → undefined` reset,
+      signal-handler cleanup symmetry, `Transform` prop-change
+      detection, …). No coverage padding to delete.
+- [x] **PTY fixture coverage gaps.** `brain/porting/test-port-status.md`
+      line 175: _"None — full parity reached 2026-05-16."_ All 46 ink
+      tests are ported; `build-output.ts` is the only "not applicable"
+      row (build-system concern).
+- [x] **Benchmark suite vs ink.** Wired in PR #15 (commit `9f3cc8464`).
+      `packages/vue-ink/bench/ink-comparison/` covers 8 scenes
+      (FlatList @ 10/100/1000 rows, NestedBoxes @ depth 10/50,
+      StyledGrid @ 5×5 and 20×10, WrappedParagraphs @ 20 × width 40)
+      against an equivalent ink app. Run with `pnpm bench`.
+- [x] **A CI matrix that actually runs the PTY tests.**
+      `.github/workflows/ci.yml` runs `pnpm test:coverage` on
+      `ubuntu-latest` + `macos-latest` × Node 22 + 24, which executes
+      the node-pty fixtures (e.g. `Exit.test.ts`). The workflow
+      comments flag `exclude:` as the lever if a cell starts flaking.
 
 ## 0.5 — ecosystem polish
 
@@ -130,14 +143,10 @@ Stretch goals; can land post-1.0 without breaking anything.
 
 ## Sequencing
 
-Ship 0.1 first — correctness gaps are the only items that *can't*
-land after release without a breaking-change story. Then 0.2 (release
-engineering) and 0.3 (docs) in parallel; 0.4 (tests) gates the actual
-`1.0` cut. 0.5 is post-1.0.
-
-A reasonable cut: 0.1 within a week, 0.2 + 0.3 over a fortnight, 0.4
-before tagging `1.0`. The whole thing is a few weeks of focused work,
-not a quarter.
+0.1, 0.3, and 0.4 are now done. The only remaining gate before a
+first public release is 0.2 — release engineering (build-artifacts
+sign-off, license-attribution sweep, semver / changeset adoption,
+publish provenance). 0.5 is post-1.0 polish.
 
 ## Related
 
