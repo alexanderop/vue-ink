@@ -16,9 +16,10 @@ found six real gaps the tracker missed or mislabelled:
 - `render()` second call applies the tree via `rerender`
   (`render.ts:264-270`); ink documents warn-and-drop
   (`repos/ink/src/render.ts:265-273`). Tracker shows ✅.
-- `patchConsole` hand-patches six methods (`render.ts:152-153`); ink
-  uses the `patch-console` library which covers every `console.*`.
-  Tracker shows ✅.
+- `patchConsole` once hand-patched only six methods (`render.ts:152-153`)
+  while ink's `patch-console` library covered 19. Closed 2026-05-18:
+  vue-ink now patches 21 methods — the same 19 as ink's `patch-console`
+  plus `profile`/`profileEnd`/`timeStamp` (`render.ts:197-219`).
 
 **How to apply:** When the user asks "is X implemented" or "what's
 missing", do not answer from the tracker alone. Open `repos/ink/`
