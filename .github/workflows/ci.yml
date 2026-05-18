@@ -42,3 +42,73 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  publish-dry-run:
+    name: Publish dry-run (pack listing sanity)
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Assert pack listings contain dist/ and .d.ts
+        run: |
+          set -euo pipefail
+          # Inspect what `npm publish` would ship for every publishable
+          # workspace package (packages/* that isn't `private` — currently
+          # only @vue-ink/docs is excluded). Each pack listing must contain
+          # at least one dist/ file and at least one .d.ts file — catches
+          # missing builds, broken `files` arrays, or .npmignore drift
+          # before a release goes out.
+          mapfile -t pkgs < <(node -e "
+            const { readdirSync, readFileSync, statSync } = require('node:fs');
+            const path = require('node:path');
+            const root = path.resolve('packages');
+            for (const name of readdirSync(root)) {
+              const dir = path.join(root, name);
+              if (!statSync(dir).isDirectory()) continue;
+              try {
+                const pkg = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8'));
+                if (pkg.private) continue;
+                console.log(pkg.name + '\t' + dir);
+              } catch {}
+            }
+          ")
+          failed=0
+          for entry in "${pkgs[@]}"; do
+            pkg_name=${entry%%$'\t'*}
+            pkg_path=${entry#*$'\t'}
+            printf '\n=== %s ===\n' "$pkg_name"
+            pack_json=$(cd "$pkg_path" && npm pack --dry-run --json)
+            files=$(PACK_JSON="$pack_json" node -e "
+              const data = JSON.parse(process.env.PACK_JSON);
+              for (const entry of data) {
+                for (const f of entry.files) console.log(f.path);
+              }
+            ")
+            echo "$files"
+            if ! grep -q '^dist/' <<<"$files"; then
+              echo "::error::${pkg_name} pack listing is missing dist/ files"
+              failed=1
+            fi
+            if ! grep -q '\.d\.ts$' <<<"$files"; then
+              echo "::error::${pkg_name} pack listing is missing .d.ts files"
+              failed=1
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo '::error::Publish dry-run failed: one or more packages are missing dist/ or .d.ts files in their pack listing.'
+            exit 1
+          fi
+          printf '\nAll publishable packages pack dist/ + .d.ts files.\n'
