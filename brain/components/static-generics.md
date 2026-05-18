@@ -8,12 +8,14 @@ breaks template slot inference.
 ## What was tried
 
 ```ts
-const StaticImpl = defineComponent({ /* items: readonly unknown[] */ })
+const StaticImpl = defineComponent({
+  /* items: readonly unknown[] */
+});
 
 const Static = StaticImpl as unknown as new <T>() => {
   $props: StaticProps<T>;
   $slots: { default?: (args: StaticSlotArgs<T>) => VNode[] };
-}
+};
 ```
 
 `StaticProps<T>` had `items: readonly T[]`. The intent: pass `T` from the
@@ -38,7 +40,7 @@ Net: the cast helps nothing and removes inference that already worked.
 
 `<script setup lang="ts" generic="T">` in an SFC. This is the path vue-tsc's
 generic-component machinery is actually wired for. Banned here for the four
-reasons in [[renderer/no-sfc-components]].
+reasons in [[../renderer/no-sfc-components]].
 
 ## Decision
 
@@ -48,5 +50,5 @@ keeps the type parameter so external code can still do
 who want type-safe slot args type-assert at the call site:
 
 ```vue
-<template #default="{ item }: { item: MyItem; index: number }">
+<template #default="{ item }: { item: MyItem; index: number }"></template>
 ```

@@ -50,9 +50,8 @@ would chop a slow paste in half.
 
 `render({ kittyKeyboard: { mode: 'enabled', flags: [...] } })` writes
 `\x1b[>${bitmask}u` on mount and `\x1b[<u` on unmount. Non-kitty terminals
-ignore the escape, so kitty-enabled apps still work everywhere. Auto-detection
-(write `\x1b[?u`, wait 200ms for a response) is **not yet implemented** —
-callers must opt in explicitly via `mode: 'enabled'`.
+ignore the escape, so kitty-enabled apps still work everywhere. `mode: 'auto'`
+is the default — see [[kitty-detection]] for the detection-window race.
 
 The kitty-enhanced legacy form (e.g. `\x1b[1;1:1A` for arrow-up press) is
 parsed via the `kittySpecialKeyRe` branch — the parser tries CSI-u first,

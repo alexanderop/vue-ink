@@ -4,15 +4,15 @@
 `@vue-ink/*` re-exports into one self-contained `.d.ts` that the
 playground injects as a hidden Volar file (see [[playground-monaco-types]]).
 
-The non-obvious part is the **two-flag pair** that makes the bundle
-actually work:
+The non-obvious part is the **two-flag pair + resolver plugin** that
+make the bundle actually work:
 
 ```js
-external: (id) => !isRelative(id) && !isWorkspace(id),
-plugins: [dts({ respectExternal: true })],
+external: (id) => !isRelative(id) && !(id in workspaceDistPaths),
+plugins: [resolveWorkspaceDist, dts({ respectExternal: true })],
 ```
 
-- `dts()` defaults to treating *every* non-relative import as external.
+- `dts()` defaults to treating _every_ non-relative import as external.
   That means `@vue-ink/renderer` is treated like `vue` — never followed
   — so the bundle is empty re-exports.
 - `respectExternal: true` flips that default to "follow everything,"
@@ -20,6 +20,11 @@ plugins: [dts({ respectExternal: true })],
   internal runtime-core types (~24k lines; bad).
 - The `external` callback rescues us by re-marking anything outside
   the `@vue-ink/` namespace as external again.
+- `resolveWorkspaceDist` rewrites `@vue-ink/{components,renderer,core}`
+  imports to each workspace's pre-built `dist/index.d.ts` so
+  rollup-plugin-dts consumes already-emitted `DefineComponent` types.
+  Without this, components flattened to `any` —
+  see [[playground-dts-component-any]].
 
 Symptom of getting this wrong: the bundle file balloons past ~5000
 lines and contains `ComponentInternalInstance`, `VNode`, etc. — Vue

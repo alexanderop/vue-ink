@@ -25,7 +25,7 @@ suites' captured frames could contain output from each other's
 
 An alternative considered was: dispatch only to subscribers whose target
 stdout `===` `process.stdout` (and likewise for stderr). That matches
-the *literal* Node semantics (`console.log` writes to `process.stdout`),
+the _literal_ Node semantics (`console.log` writes to `process.stdout`),
 but it breaks the common test pattern of using a capture stream as the
 renderer's stdout and asserting that `console.log` output landed in the
 captured frame. LIFO keeps that pattern working: the single active
@@ -39,10 +39,10 @@ renderer in a test is always the top of the stack.
 - Parallel/leaky test setups: a newly-mounted renderer hides earlier
   ones, so subsequent `console.log` calls don't bleed into an older
   test's captured stream. ✓
-- Multiple concurrent renderers on *different* stdouts: only the newest
+- Multiple concurrent renderers on _different_ stdouts: only the newest
   intercepts. This matches ink. If two renderers both want to surface
   console output above their frames, the user pattern is `patchConsole:
-  false` on whichever shouldn't be the sink.
+false` on whichever shouldn't be the sink.
 
 ## Related
 
@@ -52,3 +52,4 @@ renderer in a test is always the top of the stack.
 - [[../porting/tracker-drift]] — the historic "narrower method set"
   drift; closed 2026-05-18 (vue-ink's `CONSOLE_METHODS` is now a
   superset of ink's `patch-console`).
+- [[../porting/inlined-deps-lose-edge-cases]] — abstract pattern this is one of two flagship cases for.

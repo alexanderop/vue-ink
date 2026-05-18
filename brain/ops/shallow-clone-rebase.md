@@ -17,3 +17,4 @@ PR branches in this repo often carry 2–3 `test(ci): …` commits that were als
 ## Related
 
 - [[../principles/fix-root-causes]] — investigate the observation tool before assuming the system is broken
+- [[../principles/prove-it-works]] — suspect the observation method before the system when verification looks wrong

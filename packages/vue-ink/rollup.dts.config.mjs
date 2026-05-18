@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { dts } from "rollup-plugin-dts";
 
 // Produces a single self-contained `dist/index.bundle.d.ts` that inlines the
@@ -7,18 +10,45 @@ import { dts } from "rollup-plugin-dts";
 // worker resolves their types from the CDN via `dependencyVersion.vue`, and
 // node:* types come from the editor's tsconfig.
 //
-// `respectExternal: true` flips rollup-plugin-dts's default of "treat every
-// non-relative import as external," which is what causes `@vue-ink/*` to be
-// followed. The `external` callback then re-marks anything *outside* the
-// workspace (e.g. `vue`, `node:stream`) as external again so we don't drag
-// Vue's runtime-core types into the bundle.
-const WORKSPACE_PREFIX = "@vue-ink/";
-const isWorkspace = (id) => id === WORKSPACE_PREFIX.slice(0, -1) || id.startsWith(WORKSPACE_PREFIX);
+// We point `@vue-ink/*` at each workspace's already-built `dist/index.d.ts`
+// instead of letting rollup-plugin-dts re-derive types from the workspace
+// source. The dist `.d.ts` files contain the fully-resolved
+// `DefineComponent<...>` return type for `Box`/`Text`/etc.; re-deriving from
+// the source loses that type and emits `declare const Box: any`, which is
+// what Monaco was seeing in the playground.
+const WORKSPACE_DIST = {
+  "@vue-ink/components": "../components/dist/index.d.ts",
+  "@vue-ink/renderer": "../renderer/dist/index.d.ts",
+  "@vue-ink/core": "../core/dist/index.d.ts",
+};
+
+const here = dirname(fileURLToPath(import.meta.url));
+const workspaceDistPaths = Object.fromEntries(
+  Object.entries(WORKSPACE_DIST).map(([id, rel]) => [id, resolve(here, rel)]),
+);
+
+for (const [id, path] of Object.entries(workspaceDistPaths)) {
+  if (!existsSync(path)) {
+    throw new Error(
+      `rollup.dts.config.mjs: missing ${id} dist at ${path}. ` +
+        `Run \`pnpm -r --filter "./packages/*" build\` before bundling vue-ink dts.`,
+    );
+  }
+}
+
 const isRelative = (id) => id.startsWith(".") || id.startsWith("/");
+
+/** @type {import('rollup').Plugin} */
+const resolveWorkspaceDist = {
+  name: "resolve-workspace-dist",
+  resolveId(id) {
+    return workspaceDistPaths[id] ?? null;
+  },
+};
 
 export default {
   input: "./src/index.ts",
   output: { file: "./dist/index.bundle.d.ts", format: "es" },
-  external: (id) => !isRelative(id) && !isWorkspace(id),
-  plugins: [dts({ respectExternal: true })],
+  external: (id) => !isRelative(id) && !(id in workspaceDistPaths),
+  plugins: [resolveWorkspaceDist, dts({ respectExternal: true })],
 };

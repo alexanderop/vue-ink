@@ -1,10 +1,16 @@
 # `new URL('./foo.ts', import.meta.url)` is a prod-only proxy footgun
 
-`apps/playground/src/playground/runner.ts:8-9` currently does:
+**Status:** fixed in commit `3659b1a74`. `runner.ts` now generates proxies at
+runtime via `URL.createObjectURL(new Blob(...))`. This note is a post-mortem
+so the trap doesn't get reintroduced.
+
+## The trap
+
+An earlier `runner.ts` did:
 
 ```ts
-const VUE_PROXY_URL = new URL('./proxies/vue.ts', import.meta.url).href;
-const VUE_INK_PROXY_URL = new URL('./proxies/vue-ink.ts', import.meta.url).href;
+const VUE_PROXY_URL = new URL("./proxies/vue.ts", import.meta.url).href;
+const VUE_INK_PROXY_URL = new URL("./proxies/vue-ink.ts", import.meta.url).href;
 ```
 
 This works in **dev** because Vite's dev server serves `/src/...ts` URLs and
@@ -37,18 +43,16 @@ Generate the proxy modules at runtime as `Blob` URLs whose source bridges
 through `globalThis` to the already-bundled real modules:
 
 ```ts
-import * as vueNs from 'vue';
-import * as vueinkNs from 'vueink';
+import * as vueNs from "vue";
+import * as vueinkNs from "vueink";
 
-const KEY = '__VUE_INK_PLAYGROUND__';
+const KEY = "__VUE_INK_PLAYGROUND__";
 (globalThis as any)[KEY] = { vue: vueNs, vueink: vueinkNs, getActiveContext };
 
 const vueProxy = Object.keys(vueNs)
-  .map(n => `export const ${n} = globalThis['${KEY}'].vue[${JSON.stringify(n)}];`)
-  .join('\n');
-const VUE_PROXY_URL = URL.createObjectURL(
-  new Blob([vueProxy], { type: 'text/javascript' }),
-);
+  .map((n) => `export const ${n} = globalThis['${KEY}'].vue[${JSON.stringify(n)}];`)
+  .join("\n");
+const VUE_PROXY_URL = URL.createObjectURL(new Blob([vueProxy], { type: "text/javascript" }));
 ```
 
 No bare specifiers, no TS-only syntax, and the single-Vue-runtime invariant

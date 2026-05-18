@@ -8,15 +8,15 @@ Fixed 2026-05-17: `CI` and `CONTINUOUS_INTEGRATION` are now string-parsed,
 
 ```ts
 const isTruthyEnv = (v: string | undefined): boolean =>
-  v !== undefined && v !== '' && v !== '0' && v.toLowerCase() !== 'false';
+  v !== undefined && v !== "" && v !== "0" && v.toLowerCase() !== "false";
 
 const isCiEnv = (): boolean => {
   const { env } = process;
   return (
-    isTruthyEnv(env['CI']) ||
-    isTruthyEnv(env['CONTINUOUS_INTEGRATION']) ||
-    env['BUILD_NUMBER'] !== undefined ||
-    env['RUN_ID'] !== undefined
+    isTruthyEnv(env["CI"]) ||
+    isTruthyEnv(env["CONTINUOUS_INTEGRATION"]) ||
+    env["BUILD_NUMBER"] !== undefined ||
+    env["RUN_ID"] !== undefined
   );
 };
 ```
@@ -32,6 +32,7 @@ suffices there — a literal `"0"` from Jenkins still counts as in-CI.
 ## Regression coverage
 
 `packages/vue-ink/test/RenderInteractive.test.ts`:
+
 - `CI='false'` on a TTY → interactive stays on, per-frame writes happen.
 - `CI='true'` on a TTY → interactive flips off, one buffered final write.
 - `BUILD_NUMBER='0'` → in-CI (presence-only).
@@ -43,11 +44,12 @@ the rest of the suite.
 
 ink uses the `is-in-ci` npm package directly
 (`repos/ink/src/render.ts`). That package handles the falsy-string
-parsing. The vue-ink inline reproduces the *list* of env vars but not
-the *parsing*.
+parsing. The vue-ink inline reproduces the _list_ of env vars but not
+the _parsing_.
 
 ## Related
 
 - [[../porting/tracker-drift]] — pattern of "ink uses library X, vue-ink
   inlines it and loses an edge case." Same shape as the `patch-console`
   drift.
+- [[../porting/inlined-deps-lose-edge-cases]] — abstract pattern this is one of two flagship cases for.

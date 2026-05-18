@@ -20,6 +20,11 @@
 
 - [[principles/prove-it-works]]
 - [[principles/fix-root-causes]]
+- [[principles/vendor-source-beats-documentation]]
+
+## Porting
+
+- [[principles/mirror-upstream-conventions]]
 
 ## Delegation
 

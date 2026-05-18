@@ -12,12 +12,14 @@
 - [[principles/guard-the-context-window]]
 - [[principles/make-operations-idempotent]]
 - [[principles/migrate-callers-then-delete-legacy-apis]]
+- [[principles/mirror-upstream-conventions]]
 - [[principles/never-block-on-the-human]]
 - [[principles/outcome-oriented-execution]]
 - [[principles/prove-it-works]]
 - [[principles/redesign-from-first-principles]]
 - [[principles/serialize-shared-state-mutations]]
 - [[principles/subtract-before-you-add]]
+- [[principles/vendor-source-beats-documentation]]
 
 ## Renderer
 
@@ -28,11 +30,13 @@
 - [[renderer/input-pipeline]]
 - [[renderer/static-dedup]] — why `<Static>` dedup happens in the renderer, not the component
 - [[renderer/layout-listeners]] — post-commit hook for Yoga-aware composables; the resize listener is now unconditional
-- [[renderer/screen-reader]] — aria-* props on Box/Text feed a separate walker when `isScreenReaderEnabled` is on
+- [[renderer/screen-reader]] — aria-\* props on Box/Text feed a separate walker when `isScreenReaderEnabled` is on
 - [[renderer/no-sfc-components]] — why internal components are `defineComponent + h()`, not `.vue` SFCs
 - [[renderer/kitty-detection]] — `auto` mode listens on stdin before the input pipeline mounts; startup-window race
 - [[renderer/console-patch]] — `patchConsole` subscribers fan out to every active renderer, not just the matching stdout
-- [[renderer/ci-detection]] — `isCiEnv()` treats `CI='false'` as in-CI; falsy-string parsing is missing
+- [[renderer/ci-detection]] — `isCiEnv()` parses falsy strings correctly; presence-only vars still flip non-interactive
+- [[renderer/host-portability]] — guards that keep `render()` callable from non-Node hosts (browser playground)
+- [[renderer/wide-char-overlay-cleanup]] — overlay frame clears half of a wide char left behind by a previous frame
 
 ## Components
 
@@ -45,13 +49,38 @@
 ## Testing
 
 - [[testing/ink-strategy]]
+- [[testing/subprocess-ci-env]] — PTY fixtures must delete CI/BUILD_NUMBER/RUN_ID, not override them
+- [[testing/hoist-pure-helpers]] — top-of-file helpers Claude keeps reinventing inside test bodies
+- [[testing/pnpm-filter-name]] — `pnpm --filter <name>` resolves package names, not folder paths
 
 ## Porting
 
-- [[porting/from-react-ink]]
+- [[porting/from-react-ink]] — idiom translations, lifecycle gotchas, common mistakes
 - [[porting/api-tracker]] — flat ✅/❌ checklist of every ink API and where vue-ink implements it
 - [[porting/test-port-status]] — file-by-file map of ink's test suite to vue-ink's, with the remaining gaps called out
 - [[porting/inlined-deps-lose-edge-cases]] — where vue-ink inlines what ink imports as a tiny package, the edge cases get dropped
+- [[porting/tracker-drift]] — parity trackers drift; verify against `repos/ink/` first
+
+## Apps / Playground
+
+- [[apps/playground-deploy]] — production build + Vercel pipeline entry point
+- [[apps/playground-dual-execution]] — Monaco edits one bundle; user code runs in another. Read first
+- [[apps/playground-blob-imports]] — module-pinning leak from generating new Blob URLs per render
+- [[apps/playground-url-import-meta-trap]] — `new URL('./foo.ts', import.meta.url)` is a prod-only proxy footgun (fixed)
+- [[apps/playground-dts-bundle]] — bundling vue-ink type defs for Monaco IntelliSense
+- [[apps/playground-dts-component-any]] — generated `.d.ts` widens component prop types to `any`
+- [[apps/playground-monaco-types]] — wiring types into Monaco for IntelliSense
+- [[apps/playground-pnpm-polyfill-shims]] — `vite-plugin-node-polyfills` pin and shim layout
+- [[apps/playground-repl-theming]] — REPL theme integration
+
+## Ops
+
+- [[ops/agent-skill-paths]] — `.agents/skills/` is inert; the active path is `.claude/skills/`
+- [[ops/agent-hooks]] — PreToolUse/PostToolUse hook wiring for the harness
+- [[ops/claude-md-symlink]] — CLAUDE.md is a symlink to AGENTS.md
+- [[ops/roadmap-drift]] — ROADMAP.md ships as a wishlist; verify scope against current code
+- [[ops/shallow-clone-rebase]] — squash-imported `repos/` subtrees need rebase tricks
+- [[ops/vueink-workspace-types-are-raw-ts]] — workspace `vueink` types resolve to raw TS
 
 ## Other
 

@@ -62,10 +62,11 @@ When you wrap `render()` for a browser host (xterm.js, etc.), override:
 ## Worked example
 
 `apps/playground/` is the reference implementation: xterm.js + `@vue/repl`
-+ a Vite alias map for the stubs above, with `src/playground/shim.ts` as
-the stdout/stdin shim and `src/playground/proxies/vue-ink.ts` as a module
-proxy that shadows `render()` to bind it to the active terminal. Mirror
-its layout for any new host (server-side PTY, JSDOM-in-test, etc.).
+
+- a Vite alias map for the stubs above, with `src/playground/shim.ts` as
+  the stdout/stdin shim and `src/playground/proxies/vue-ink.ts` as a module
+  proxy that shadows `render()` to bind it to the active terminal. Mirror
+  its layout for any new host (server-side PTY, JSDOM-in-test, etc.).
 
 **Don't bump `vite-plugin-node-polyfills` past `^0.22.0`.** 0.23.x is
 deprecated on npm ("this version is broken") — it references
@@ -83,4 +84,5 @@ the terminal. Don't introduce a new entry point — extend `render()`'s
 existing option surface.
 
 Related: [[how-it-works]], [[input-pipeline]],
-[[layout-listeners]] (the resize → useWindowSize path).
+[[layout-listeners]] (the resize → useWindowSize path),
+[[../apps/playground-pnpm-polyfill-shims]] (the shim/polyfill layout used in the playground).

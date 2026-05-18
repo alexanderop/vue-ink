@@ -15,7 +15,7 @@ Confirmed instances:
   every call). See [[../renderer/console-patch]].
 
 **Why:** Both libraries are tiny (10–50 LOC). Reimplementing them looked
-trivial during the port — and the *shape* of the logic is trivial. The
+trivial during the port — and the _shape_ of the logic is trivial. The
 non-obvious bit is the edge cases the original library encodes (string
 parsing for `is-in-ci`; per-instance stream closure for `patch-console`),
 which don't show up in the surface API and aren't covered by a
@@ -26,7 +26,7 @@ ink counterpart is `import x from 'x-pkg'` as suspicious. Read the actual
 library and diff what vue-ink's inline omits — especially around
 non-empty-string truthiness, edge inputs, and per-instance state. The
 [[tracker-drift]] audit pattern applies here too: the parity tracker
-usually marks these ✅ because the *signatures* match.
+usually marks these ✅ because the _signatures_ match.
 
 `repos/ink/` is a `git subtree` of the source tree only — there is **no
 `node_modules/` under it**, so ink's runtime deps aren't sitting on disk.
@@ -46,3 +46,10 @@ was missed for one iteration because the existing brain note guessed
 "each render's patch-console instance closes over its own stream"; the
 real `patch-console` uses a single module-level `originalMethods` slot,
 which is the LIFO behaviour vue-ink ended up mirroring.
+
+## Related
+
+- [[../principles/vendor-source-beats-documentation]] — this note is the
+  evidence base for the principle.
+- [[../renderer/ci-detection]], [[../renderer/console-patch]] — the two
+  flagship case studies of this pattern.
