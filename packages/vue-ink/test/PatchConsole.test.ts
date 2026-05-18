@@ -118,6 +118,48 @@ describe('patchConsole', () => {
 		expect(joined).toContain('a');
 	});
 
+	it('does not fan console.log to earlier renderers when a newer one is mounted', async () => {
+		// Two concurrent renderers against capture streams: only the most
+		// recently subscribed one intercepts console.log (LIFO, matching
+		// ink's patch-console). Earlier renderers must not see writes that
+		// happened after a later renderer mounted. Regression for the
+		// consoleSubscribers fan-out bug. See brain/renderer/console-patch.md.
+		const stdoutA = createCaptureStream(20);
+		const stdoutB = createCaptureStream(20);
+		const App = defineComponent({ setup: () => () => h(Text, null, () => 'x') });
+		const a = render(App, { stdout: stdoutA, interactive: true });
+		const b = render(App, { stdout: stdoutB, interactive: true });
+		await flush();
+		console.log('only-b-should-see-this');
+		await flush();
+		a.unmount();
+		b.unmount();
+
+		expect(stripAnsi(stdoutA.frames.join(''))).not.toContain('only-b-should-see-this');
+		expect(stripAnsi(stdoutB.frames.join(''))).toContain('only-b-should-see-this');
+	});
+
+	it('restores routing to the earlier renderer when the active one unmounts', async () => {
+		// When the top-of-stack renderer unmounts, the previous subscriber
+		// becomes active — matches ink's patch-console unwind. Without this,
+		// nested test setups would silently lose console patching when the
+		// inner render ends.
+		const stdoutA = createCaptureStream(20);
+		const stdoutB = createCaptureStream(20);
+		const App = defineComponent({ setup: () => () => h(Text, null, () => 'x') });
+		const a = render(App, { stdout: stdoutA, interactive: true });
+		const b = render(App, { stdout: stdoutB, interactive: true });
+		await flush();
+		b.unmount();
+		await flush();
+		console.log('back-to-a');
+		await flush();
+		a.unmount();
+
+		expect(stripAnsi(stdoutA.frames.join(''))).toContain('back-to-a');
+		expect(stripAnsi(stdoutB.frames.join(''))).not.toContain('back-to-a');
+	});
+
 	it('reference-counts patches so nested render() calls do not break each other', async () => {
 		const stdoutA = createCaptureStream(20);
 		const stdoutB = createCaptureStream(20);

@@ -1,54 +1,43 @@
-# `isCiEnv()` treats any truthy env value as in-CI
+# `isCiEnv()` — falsy-string parsing
 
-`packages/renderer/src/render.ts:116-125` inlines `is-in-ci`'s logic:
-
-```ts
-const isCiEnv = (): boolean => {
-  const { env } = process;
-  return Boolean(
-    env['CI'] ||
-      env['CONTINUOUS_INTEGRATION'] ||
-      env['BUILD_NUMBER'] ||
-      env['RUN_ID'],
-  );
-};
-```
-
-`Boolean(env['CI'])` returns `true` for any non-empty string —
-including `'false'`, `'0'`, and `'no'`. A user (or a test harness) that
-sets `CI=false` to mean "not in CI" gets the opposite: `interactive`
-flips off (`render.ts:321`), the alternate screen never enters, the
-throttle disengages, frames go out one-shot.
-
-## How it surfaces
-
-- Test fixtures that need `interactive: true` work around it by
-  `delete`-ing `CI` from `process.env` before calling `render()`.
-- A user on a workstation with `CI=false` exported (e.g. inherited from
-  a misconfigured shell rc) will see vue-ink behave as if in CI.
-
-## The fix
-
-Parse the string. The shape used by most CI-detection libs:
+`packages/renderer/src/render.ts:116-131` inlines `is-in-ci`'s logic.
+Earlier versions wrapped every env var in `Boolean(...)`, which treated
+any non-empty string (including `'false'`, `'0'`, `'no'`) as in-CI.
+Fixed 2026-05-17: `CI` and `CONTINUOUS_INTEGRATION` are now string-parsed,
+`BUILD_NUMBER` / `RUN_ID` stay presence-only.
 
 ```ts
-const truthy = (v: string | undefined): boolean =>
+const isTruthyEnv = (v: string | undefined): boolean =>
   v !== undefined && v !== '' && v !== '0' && v.toLowerCase() !== 'false';
 
 const isCiEnv = (): boolean => {
   const { env } = process;
   return (
-    truthy(env['CI']) ||
-    truthy(env['CONTINUOUS_INTEGRATION']) ||
+    isTruthyEnv(env['CI']) ||
+    isTruthyEnv(env['CONTINUOUS_INTEGRATION']) ||
     env['BUILD_NUMBER'] !== undefined ||
     env['RUN_ID'] !== undefined
   );
 };
 ```
 
+`isTruthyEnv` is hoisted to module scope rather than nested inside
+`isCiEnv` — oxlint's `unicorn/consistent-function-scoping` rule fails
+the lefthook pre-commit hook otherwise. See [[../testing/hoist-pure-helpers]].
+
 `BUILD_NUMBER` and `RUN_ID` are presence-checks (CI providers either
 set them with a real ID or don't set them at all), so `undefined`
-suffices there.
+suffices there — a literal `"0"` from Jenkins still counts as in-CI.
+
+## Regression coverage
+
+`packages/vue-ink/test/RenderInteractive.test.ts`:
+- `CI='false'` on a TTY → interactive stays on, per-frame writes happen.
+- `CI='true'` on a TTY → interactive flips off, one buffered final write.
+- `BUILD_NUMBER='0'` → in-CI (presence-only).
+
+Each test snapshots and restores `process.env` so it doesn't leak into
+the rest of the suite.
 
 ## Why ink doesn't hit this
 

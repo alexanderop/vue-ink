@@ -1,63 +1,53 @@
-# `patchConsole` fans out to every active renderer
+# `patchConsole` is a LIFO stack of subscribers
 
-`packages/renderer/src/render.ts:214-269` ref-counts a **process-wide**
-`consoleSubscribers: Set<ConsoleSubscriber>`. Each `render()` call with
-`patchConsole: true` (the default) appends one subscriber; the global
-`console.*` patch is installed on first subscribe and uninstalled when
-the set drains.
+`packages/renderer/src/render.ts` ref-counts a **process-wide**
+`consoleSubscribers: ConsoleSubscriber[]` (an ordered stack, not a Set).
+Each `render()` call with `patchConsole: true` (the default) pushes one
+subscriber; the global `console.*` patch is installed on first push and
+uninstalled when the stack drains.
 
-That ref-counting is correct for install/uninstall. The fan-out is not
-target-aware: every patched `console.log` walks the full Set and writes
-the formatted text to **every** subscriber's `writeStdout`. With one
-active render this is fine. With two concurrent renders against
-different stdouts (a test suite running renders in parallel, or an app
-that mounts a second root), each `console.log` is written above
-**both** frames.
+## Routing rule (the fix)
 
-## When this bites
+Only the **top** of the stack — `consoleSubscribers.at(-1)` — receives a
+patched console call. When that renderer unmounts, the previous
+subscriber becomes active. This mirrors ink's `patch-console` package,
+which uses a single module-level `originalMethods` slot: each new
+`patchConsole()` overwrites the previous wrapper, and restore unwinds
+back to it.
 
-- Vitest suites that run multiple `render()` calls without
-  `patchConsole: false` and assert against captured frames — the
-  asserting frame contains output from sibling tests' `console.log`s.
-- An app that spawns a sub-render for a separate stdout (rare, but
-  possible via the testing-library reusable-render helpers).
+The earlier implementation iterated a `Set<ConsoleSubscriber>` and
+dispatched to every subscriber, so two concurrent renders against
+different stdouts both saw every `console.log` — meaning sibling test
+suites' captured frames could contain output from each other's
+`console.log`s.
 
-## How to avoid the surprise today
+## Why LIFO and not stream-identity matching
 
-- In tests that don't need the console patch, pass `patchConsole:
-  false`. Most of `packages/vue-ink/test/` already does this.
-- In tests that need it, run them serially (`describe.sequential` or
-  `--no-file-parallelism`).
+An alternative considered was: dispatch only to subscribers whose target
+stdout `===` `process.stdout` (and likewise for stderr). That matches
+the *literal* Node semantics (`console.log` writes to `process.stdout`),
+but it breaks the common test pattern of using a capture stream as the
+renderer's stdout and asserting that `console.log` output landed in the
+captured frame. LIFO keeps that pattern working: the single active
+renderer in a test is always the top of the stack.
 
-## The proper fix
+## Behavioural guarantees
 
-Group `consoleSubscribers` by `stdout` (or stash the subscriber's
-target stream identity inside the entry). On dispatch, route to the
-subscriber whose `writeStdout` is bound to the current call's
-originating render — except `console.log` has no notion of "current
-render", so the routing has to be by *stream* not by *caller*. The
-practical shape:
-
-```ts
-// install: store the patched stream on the subscriber
-consoleSubscribers.add({ stdout: targetStdout, stderr: targetStderr, write… });
-
-// dispatch: only write to subscribers whose target stream matches the
-// one we'd otherwise write to directly. For console.log that's the
-// process.stdout-equivalent the subscriber owns.
-```
-
-This matches ink's behaviour: `repos/ink/src/render.ts` uses the
-`patch-console` library, which writes to the `process.stdout` that
-`patchConsole` was called against at patch time. Two ink renderers
-against different stdouts end up writing each console call to only
-their own frame because each render's `patch-console` instance closes
-over its own stream.
+- Single renderer (the production case): the patch routes to it. ✓
+- Test with capture stream: still works — the test's renderer is the
+  only entry on the stack. ✓
+- Parallel/leaky test setups: a newly-mounted renderer hides earlier
+  ones, so subsequent `console.log` calls don't bleed into an older
+  test's captured stream. ✓
+- Multiple concurrent renderers on *different* stdouts: only the newest
+  intercepts. This matches ink. If two renderers both want to surface
+  console output above their frames, the user pattern is `patchConsole:
+  false` on whichever shouldn't be the sink.
 
 ## Related
 
-- [[../porting/from-react-ink]] — the `RenderOptions.patchConsole`
-  table row says "ref-counted across concurrent renders" which is
-  accurate for install/uninstall, not for routing.
-- [[../porting/tracker-drift]] — `patchConsole` already flagged as
-  drifting from ink (hand-patches six methods vs ink's full coverage).
+- [[../porting/from-react-ink]] — `RenderOptions.patchConsole` table row
+  used to say "ref-counted across concurrent renders" — accurate for
+  install/uninstall, and now also for routing under LIFO semantics.
+- [[../porting/tracker-drift]] — `patchConsole` still hand-patches a
+  narrower method set than ink's full surface (separate ROADMAP item).

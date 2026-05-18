@@ -159,7 +159,7 @@ Details in [[from-react-ink#hooks-composables-the-three-shape-changes]].
 | `debug`                   | `debug`                  | ✅     |
 | `exitOnCtrlC`             | `exitOnCtrlC`            | ✅     |
 | `patchConsole`            | `patchConsole`           | ✅     | Hand-patched; covers `log/info/warn/error/debug/trace/dir/dirxml/table/group/groupCollapsed/groupEnd/assert/count/countReset/time/timeEnd/timeLog/profile/profileEnd/timeStamp`. Only `warn`/`error` go through stderr; everything else routes to stdout. |
-| `onRender`                | `onRender`               | ✅     | Payload exposes both `renderTime` (ink-compat) and `durationMs` (vue-ink name); they're aliases for the same `performance.now()` delta. |
+| `onRender`                | `onRender`               | ✅     | Payload: `{ frame, renderTime, lineCount, output }`. `renderTime` matches ink's field name (`repos/ink/src/ink.tsx:207-212`); the extra `frame`/`lineCount`/`output` fields are vue-ink additions. |
 | `isScreenReaderEnabled`   | `isScreenReaderEnabled`  | ✅     |
 | `maxFps`                  | `maxFps`                 | ✅     |
 | `incrementalRendering`    | `incrementalRendering`   | ✅     |

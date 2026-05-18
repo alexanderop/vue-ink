@@ -74,7 +74,7 @@ training data.
 | `debug`                   | `debug`                  | ✓ same semantics (no erase, no throttle) |
 | `exitOnCtrlC`             | `exitOnCtrlC`            | ✓ default `true`                    |
 | `patchConsole`            | `patchConsole`           | ✓ default `true`, ref-counted across concurrent renders |
-| `onRender(metrics)`       | `onRender(metrics)`      | ✓ metrics shape: `{frame, durationMs, lineCount, output}` |
+| `onRender(metrics)`       | `onRender(metrics)`      | ✓ metrics shape: `{frame, renderTime, lineCount, output}` — `renderTime` matches ink's field name |
 | `isScreenReaderEnabled`   | `isScreenReaderEnabled`  | ✓ env: `INK_SCREEN_READER=true`     |
 | `maxFps`                  | `maxFps`                 | ✓ default `30`                      |
 | `kittyKeyboard`           | `kittyKeyboard`          | ✓ `mode: 'auto'` queries `CSI ? u` with a 200ms timeout, falls back silently |

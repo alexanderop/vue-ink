@@ -13,14 +13,9 @@ found six real gaps the tracker missed or mislabelled:
 - `BoxMetrics` type alias not re-exported from `@vue-ink/vue-ink`
   (`packages/vue-ink/src/index.ts:36-37`); ink exports it from
   `index.ts:35`.
-- `onRender` payload silently renamed `renderTime` → `durationMs`
-  (`packages/renderer/src/render.ts:103-108`). Tracker shows ✅.
 - `render()` second call applies the tree via `rerender`
   (`render.ts:264-270`); ink documents warn-and-drop
   (`repos/ink/src/render.ts:265-273`). Tracker shows ✅.
-- `waitUntilRenderFlush()` only awaits `process.nextTick`
-  (`render.ts:933-935`); ink awaits the actual `stdout.write` callback
-  (`ink.tsx:922-928`). Different barrier guarantees. Tracker shows ✅.
 - `patchConsole` hand-patches six methods (`render.ts:152-153`); ink
   uses the `patch-console` library which covers every `console.*`.
   Tracker shows ✅.

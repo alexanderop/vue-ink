@@ -22,9 +22,27 @@ which don't show up in the surface API and aren't covered by a
 mechanical port.
 
 **How to apply:** When auditing the port, treat any inlined helper whose
-ink counterpart is `import x from 'x-pkg'` as suspicious. Open
-`repos/<pkg>/` (or `node_modules` if it's not vendored), read the actual
-library, and diff what vue-ink's inline omits — especially around
+ink counterpart is `import x from 'x-pkg'` as suspicious. Read the actual
+library and diff what vue-ink's inline omits — especially around
 non-empty-string truthiness, edge inputs, and per-instance state. The
 [[tracker-drift]] audit pattern applies here too: the parity tracker
 usually marks these ✅ because the *signatures* match.
+
+`repos/ink/` is a `git subtree` of the source tree only — there is **no
+`node_modules/` under it**, so ink's runtime deps aren't sitting on disk.
+To read one (e.g. `patch-console`, `is-in-ci`):
+
+```bash
+# fast: pull the published source straight from GitHub raw
+curl -s https://raw.githubusercontent.com/vadimdemedes/patch-console/master/source/index.ts
+
+# or look up the repo URL first
+npm view <pkg> repository
+```
+
+Don't trust speculation in a brain note about how the upstream library
+works — reach for the actual source first. The `console-patch` LIFO fix
+was missed for one iteration because the existing brain note guessed
+"each render's patch-console instance closes over its own stream"; the
+real `patch-console` uses a single module-level `originalMethods` slot,
+which is the LIFO behaviour vue-ink ended up mirroring.

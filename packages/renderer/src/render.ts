@@ -102,25 +102,31 @@ export type RenderOptions = {
 
 export type RenderMetrics = {
 	frame: number;
-	durationMs: number;
 	/**
-	 * Alias of `durationMs` — kept for ink compatibility. Ink's `onRender`
-	 * callback receives `{ renderTime }` (`repos/ink/src/ink.tsx:211,544`),
-	 * so direct ports can keep reading the same field.
+	 * Time spent rendering this frame, in milliseconds. Matches ink's
+	 * `RenderMetrics.renderTime` (`repos/ink/src/ink.tsx:207-212`) so direct
+	 * ports of `onRender({ renderTime }) => …` work unchanged.
 	 */
 	renderTime: number;
 	lineCount: number;
 	output: string;
 };
 
+const isTruthyEnv = (v: string | undefined): boolean =>
+	v !== undefined && v !== '' && v !== '0' && v.toLowerCase() !== 'false';
+
 const isCiEnv = (): boolean => {
-	// `is-in-ci`'s entire logic, inlined: CI providers set one of these.
+	// `is-in-ci`'s logic, inlined: CI providers set one of these.
+	// `CI` and `CONTINUOUS_INTEGRATION` are string-valued (a shell that exports
+	// `CI=false` means *not* in CI), so we have to parse them rather than
+	// truthy-check. `BUILD_NUMBER` / `RUN_ID` are presence-only — CI providers
+	// either set them to a real ID or leave them unset.
 	const { env } = process;
-	return Boolean(
-		env['CI'] ||
-			env['CONTINUOUS_INTEGRATION'] ||
-			env['BUILD_NUMBER'] ||
-			env['RUN_ID'],
+	return (
+		isTruthyEnv(env['CI']) ||
+		isTruthyEnv(env['CONTINUOUS_INTEGRATION']) ||
+		env['BUILD_NUMBER'] !== undefined ||
+		env['RUN_ID'] !== undefined
 	);
 };
 
@@ -215,7 +221,13 @@ type ConsoleSubscriber = {
 	writeStdout: (data: string) => void;
 	writeStderr: (data: string) => void;
 };
-const consoleSubscribers = new Set<ConsoleSubscriber>();
+// Ordered LIFO stack — only the top (most-recently subscribed) receives
+// patched console calls. Mirrors ink's behaviour via `patch-console`, which
+// has a single module-level `originalMethods` slot: each new patch overwrites
+// the previous, restore unwinds to the prior patch. Two concurrent renders
+// against different stdouts no longer both intercept the process-global
+// `console.log`. See brain/renderer/console-patch.md.
+const consoleSubscribers: ConsoleSubscriber[] = [];
 let originalConsoleMethods: Partial<Record<ConsoleMethod, Console[ConsoleMethod]>> | undefined;
 
 // Only `warn` and `error` route to stderr; everything else (including
@@ -239,11 +251,11 @@ const installConsolePatch = (): void => {
 		originalConsoleMethods[method] = console[method];
 		const isStderrChannel = STDERR_CONSOLE_METHODS.has(method);
 		consoleAsRecord[method] = (...args: unknown[]) => {
+			const active = consoleSubscribers.at(-1);
+			if (!active) return;
 			const text = `${formatWithOptions({ colors: true }, ...args)}\n`;
-			for (const sub of consoleSubscribers) {
-				if (isStderrChannel) sub.writeStderr(text);
-				else sub.writeStdout(text);
-			}
+			if (isStderrChannel) active.writeStderr(text);
+			else active.writeStdout(text);
 		};
 	}
 };
@@ -261,10 +273,11 @@ const uninstallConsolePatch = (): void => {
 
 const subscribeConsole = (sub: ConsoleSubscriber): (() => void) => {
 	installConsolePatch();
-	consoleSubscribers.add(sub);
+	consoleSubscribers.push(sub);
 	return () => {
-		consoleSubscribers.delete(sub);
-		if (consoleSubscribers.size === 0) uninstallConsolePatch();
+		const idx = consoleSubscribers.lastIndexOf(sub);
+		if (idx !== -1) consoleSubscribers.splice(idx, 1);
+		if (consoleSubscribers.length === 0) uninstallConsolePatch();
 	};
 };
 
@@ -767,7 +780,6 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		try {
 			options.onRender!({
 				frame: frameCounter,
-				durationMs: elapsed,
 				renderTime: elapsed,
 				lineCount,
 				output: text,
@@ -1006,19 +1018,17 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
 		// Let Vue's scheduler drain so any pending state changes commit and
 		// schedule a paint (immediate or trailing).
 		await vueNextTick();
-		// If a paint is pending behind the throttle, wait for it to land.
-		if (hasPendingRender || trailingTimer !== undefined) {
-			await new Promise<void>((resolve) => {
-				commitWaiters.push(resolve);
-			});
+		// Force-flush a pending trailing-edge paint synchronously. Mirrors
+		// ink's `settleThrottle(throttledOnRender).flush()`
+		// (`repos/ink/src/ink.tsx:919-920`): flushing now keeps the test
+		// pipeline off the throttle delay and avoids racing the timer
+		// against an unmount or another wait.
+		if (!unmounted && (hasPendingRender || trailingTimer !== undefined)) {
+			commitNow();
 		}
-		// Yield once more so the write reaches the stream before we resolve.
-		await new Promise<void>((resolve) => {
-			process.nextTick(resolve);
-		});
 		// Match ink (`repos/ink/src/ink.tsx:922-928`): await an empty stream
 		// write so the writable's drain callback fires before we resolve. On
-		// slow / backpressured streams the nextTick yield above can resolve
+		// slow / backpressured streams an earlier microtask yield can resolve
 		// while bytes are still queued in the kernel buffer. Guard against
 		// torn-down or non-writable streams (process exit, closed pipe,
 		// test-stream without `write`). Skip the stderr leg — vue-ink writes

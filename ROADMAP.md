@@ -21,20 +21,29 @@ each is a small targeted fix, not a refactor.
       place) instead of `stdin.unshift()`. See
       [[brain/renderer/kitty-detection]] · `render.ts:927-944` ·
       `input.ts:178-198`.
-- [ ] **`isCiEnv()` treats `CI='false'` as in-CI.** Parse the env value
-      against `'0' | 'false' | ''` instead of `Boolean(...)`.
-      See [[brain/renderer/ci-detection]] · `render.ts:116-125`.
-- [ ] **`consoleSubscribers` fans out to every active renderer.**
-      Two concurrent `render()` calls against different stdouts both
-      get every patched `console.log`. Group subscribers by stream.
-      See [[brain/renderer/console-patch]] · `render.ts:214-269`.
-- [ ] **`renderTime` vs `durationMs` in `onRender` payload.** Tracker
-      shows ✅ but the field was silently renamed. Pick one and
-      align docs + types. See `brain/porting/tracker-drift.md`.
-- [ ] **`waitUntilRenderFlush()` barrier is weaker than ink's.** Ink
-      awaits the actual `stdout.write` callback; we only walk to
-      `process.nextTick` + stream drain. Tests that race a write
-      against assertion can flake.
+- [x] **`isCiEnv()` treats `CI='false'` as in-CI.** Now parses the env
+      value against `'0' | 'false' | ''` instead of `Boolean(...)`;
+      `BUILD_NUMBER` / `RUN_ID` are presence-only checks. Regression
+      tests in `RenderInteractive.test.ts`. See
+      [[brain/renderer/ci-detection]] · `render.ts:116-131`.
+- [x] **`consoleSubscribers` fans out to every active renderer.**
+      Subscribers now form a LIFO stack; only the top (most-recently
+      mounted renderer) receives patched console calls — mirrors ink's
+      `patch-console`. Regression tests in `PatchConsole.test.ts`. See
+      [[brain/renderer/console-patch]] · `render.ts:214-279`.
+- [x] **`renderTime` vs `durationMs` in `onRender` payload.** Renamed
+      `durationMs` → `renderTime` to match ink's `RenderMetrics`
+      (`repos/ink/src/ink.tsx:207-212`); types, tests, and porting
+      docs aligned. Payload is now `{ frame, renderTime, lineCount,
+      output }`. See `render.ts:103-112,776-787`.
+- [x] **`waitUntilRenderFlush()` barrier matches ink's.** Awaits the
+      actual `stdout.write` callback for drain semantics, and
+      synchronously flushes a pending trailing-edge paint instead of
+      waiting for the throttle timer — mirrors ink's
+      `settleThrottle(throttledOnRender).flush()` + write-callback
+      barrier (`repos/ink/src/ink.tsx:919-928`). Regression test in
+      `WaitUntilRenderFlush.test.ts` (slow Writable, drain assertion).
+      See `render.ts:1016-1052`.
 - [ ] **`patchConsole` covers six methods, ink covers all of them.**
       Either match ink (drop in `patch-console`) or document the
       narrower surface.

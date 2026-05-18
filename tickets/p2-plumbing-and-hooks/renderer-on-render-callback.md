@@ -5,7 +5,7 @@ Tests and instrumentation want a hook that fires every time a frame commits, wit
 
 ## Scope
 - Add `onRender?: (metrics: RenderMetrics) => void` to `RenderOptions`.
-- Define `RenderMetrics = { frame: number; durationMs: number; lineCount: number; output: string }`.
+- Define `RenderMetrics = { frame: number; renderTime: number; lineCount: number; output: string }`. The `renderTime` field name matches ink's `RenderMetrics.renderTime` (`repos/ink/src/ink.tsx:207-212`) so direct ports keep working.
 - Call after each successful frame write (inside `doRender`), before the next event-loop tick.
 - Wrap in try/catch and emit failures via stderr so user callbacks can't crash the renderer.
 
