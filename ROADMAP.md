@@ -44,9 +44,6 @@ each is a small targeted fix, not a refactor.
       barrier (`repos/ink/src/ink.tsx:919-928`). Regression test in
       `WaitUntilRenderFlush.test.ts` (slow Writable, drain assertion).
       See `render.ts:1016-1052`.
-- [ ] **`patchConsole` covers six methods, ink covers all of them.**
-      Either match ink (drop in `patch-console`) or document the
-      narrower surface.
 
 ## 0.2 — release engineering
 

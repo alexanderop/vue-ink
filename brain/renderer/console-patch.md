@@ -49,5 +49,6 @@ renderer in a test is always the top of the stack.
 - [[../porting/from-react-ink]] — `RenderOptions.patchConsole` table row
   used to say "ref-counted across concurrent renders" — accurate for
   install/uninstall, and now also for routing under LIFO semantics.
-- [[../porting/tracker-drift]] — `patchConsole` still hand-patches a
-  narrower method set than ink's full surface (separate ROADMAP item).
+- [[../porting/tracker-drift]] — the historic "narrower method set"
+  drift; closed 2026-05-18 (vue-ink's `CONSOLE_METHODS` is now a
+  superset of ink's `patch-console`).

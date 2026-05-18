@@ -158,7 +158,7 @@ Details in [[from-react-ink#hooks-composables-the-three-shape-changes]].
 | `stderr`                  | `stderr`                 | ✅     |
 | `debug`                   | `debug`                  | ✅     |
 | `exitOnCtrlC`             | `exitOnCtrlC`            | ✅     |
-| `patchConsole`            | `patchConsole`           | ✅     | Hand-patched; covers `log/info/warn/error/debug/trace/dir/dirxml/table/group/groupCollapsed/groupEnd/assert/count/countReset/time/timeEnd/timeLog/profile/profileEnd/timeStamp`. Only `warn`/`error` go through stderr; everything else routes to stdout. |
+| `patchConsole`            | `patchConsole`           | ✅     | Hand-patched; covers `log/info/warn/error/debug/trace/dir/dirxml/table/group/groupCollapsed/groupEnd/assert/count/countReset/time/timeEnd/timeLog/profile/profileEnd/timeStamp`. That is a strict **superset** of ink's `patch-console` (which patches 19 methods — same set minus `profile`/`profileEnd`/`timeStamp`; verified against `github.com/vadimdemedes/patch-console@master:source/index.ts` 2026-05-18). Only `warn`/`error` go through stderr; everything else routes to stdout. |
 | `onRender`                | `onRender`               | ✅     | Payload: `{ frame, renderTime, lineCount, output }`. `renderTime` matches ink's field name (`repos/ink/src/ink.tsx:207-212`); the extra `frame`/`lineCount`/`output` fields are vue-ink additions. |
 | `isScreenReaderEnabled`   | `isScreenReaderEnabled`  | ✅     |
 | `maxFps`                  | `maxFps`                 | ✅     |
