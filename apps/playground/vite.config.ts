@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import { fileURLToPath, URL } from "node:url";
 import vue from "@vitejs/plugin-vue";
 import { defineConfig, type Plugin } from "vite";
@@ -16,12 +15,16 @@ import { nodePolyfills } from "vite-plugin-node-polyfills";
 // packages/renderer/src/render.ts fails with `Could not load …/shims/process`.
 // This plugin runs before the default file resolver and points the three shim
 // specifiers at their actual on-disk locations.
-const require = createRequire(import.meta.url);
+//
+// Use `import.meta.resolve` rather than `createRequire().resolve` — the latter
+// honors the `require` export condition and returns the shim's CJS build, which
+// Vite then tries to load as ESM and fails with `does not provide an export
+// named 'default'`. `import.meta.resolve` picks the ESM `index.js`.
 const SHIM_NAMES = ["buffer", "global", "process"] as const;
 const SHIM_RESOLUTIONS = new Map(
   SHIM_NAMES.map((name) => [
     `vite-plugin-node-polyfills/shims/${name}`,
-    require.resolve(`vite-plugin-node-polyfills/shims/${name}`),
+    fileURLToPath(import.meta.resolve(`vite-plugin-node-polyfills/shims/${name}`)),
   ]),
 );
 

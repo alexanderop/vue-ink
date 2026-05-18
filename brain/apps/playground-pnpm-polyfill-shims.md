@@ -17,8 +17,23 @@ Could not load …/packages/renderer/src/shims/process
 
 Symptom looks like a Vite config bug but is purely a pnpm layout issue. The
 fix is a `pre`-stage Rollup plugin that maps the three shim specifiers to
-their absolute on-disk locations via `createRequire(import.meta.url).resolve`
-— see `apps/playground/vite.config.ts:19-35`.
+their absolute on-disk locations — see `apps/playground/vite.config.ts:19-35`.
+
+## Use `import.meta.resolve`, not `createRequire().resolve`
+
+The shim package ships dual builds (`dist/index.cjs` + `dist/index.js`) with
+an `exports` map keyed on `require`/`import` conditions.
+`createRequire(import.meta.url).resolve(…)` resolves under the `require`
+condition and hands back the CJS path. Vite then tries to load it through
+its ESM `?import` pipeline and the page dies with:
+
+```
+The requested module '…/shims/buffer/dist/index.cjs?import' does not
+provide an export named 'default'
+```
+
+`import.meta.resolve(…)` (sync since Node ≥20.6) picks the ESM `index.js`.
+Wrap it in `fileURLToPath` because it returns a `file://` URL.
 
 ## Why it only bites in production
 

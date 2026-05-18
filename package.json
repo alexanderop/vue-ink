@@ -29,6 +29,8 @@
 		"@vitest/coverage-v8": "catalog:",
 		"lefthook": "^1.13.6",
 		"oxfmt": "^0.50.0",
+		"rollup": "^4.60.4",
+		"rollup-plugin-dts": "^6.4.1",
 		"tsx": "catalog:",
 		"vite": "^7.1.0",
 		"vite-plus": "^0.1.21",

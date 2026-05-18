@@ -1,14 +1,19 @@
 /// <reference types="vite/client" />
 
-declare module '*.vue' {
-	import type { DefineComponent } from 'vue';
+declare module "*.vue" {
+  import type { DefineComponent } from "vue";
 
-	const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>;
-	export default component;
+  const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>;
+  export default component;
 }
 
-declare module '@vue/repl/monaco-editor' {
-	import type { EditorComponentType } from '@vue/repl';
-	const Monaco: EditorComponentType;
-	export default Monaco;
+declare module "@vue/repl/monaco-editor" {
+  import type { EditorComponentType } from "@vue/repl";
+  const Monaco: EditorComponentType;
+  export default Monaco;
+}
+
+declare module "vueink/dts-bundle?raw" {
+  const dts: string;
+  export default dts;
 }
