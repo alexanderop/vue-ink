@@ -6,6 +6,21 @@ Use Vue's reactivity, components, and SFCs to build interactive command-line app
 
 > Status: early / experimental (`0.0.1`). API mirrors a subset of Ink.
 
+## Documentation
+
+Full docs live in the [VitePress site](./packages/docs) — guides, API reference, and the Ink → vue-ink parity table:
+
+- **Getting started:** [`packages/docs/guide/getting-started.md`](./packages/docs/guide/getting-started.md)
+- **API reference:** [`packages/docs/api/`](./packages/docs/api/) — `render`, `renderToString`, `measureElement`, components, composables
+- **Ink parity table:** [`packages/docs/reference/ink-parity.md`](./packages/docs/reference/ink-parity.md)
+- **Devtools:** enable the `@vue/devtools` inspector to walk the Vue tree behind your TUI — see [`packages/docs/guide/devtools.md`](./packages/docs/guide/devtools.md)
+
+Run the docs locally with `pnpm docs:dev`.
+
+### Migrating from ink
+
+Coming from React Ink? The composable signatures changed in a few small ways (`Stop` return values, `MaybeRefOrGetter` props, refs in place of mutable state). Side-by-side ink/vue-ink snippets live at [`packages/docs/guide/migrating-from-ink.md`](./packages/docs/guide/migrating-from-ink.md).
+
 ## Install
 
 ```sh
@@ -149,6 +164,10 @@ See `brain/porting/api-tracker.md` for the full ink → vue-ink parity table.
 ## Credits
 
 This project is a direct port of [Ink](https://github.com/vadimdemedes/ink) by Vadim Demedes. The layout, rendering, and component model trace back to that project; vue-ink swaps the React reconciler for a Vue custom renderer.
+
+## Contributing
+
+PRs, bug reports, and brain-note additions are welcome. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for local setup, workspace layout, test naming, the brain-note system, changesets, and the release process.
 
 ## License & attribution
 
