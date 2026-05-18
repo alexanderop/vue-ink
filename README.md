@@ -149,6 +149,8 @@ See `brain/porting/api-tracker.md` for the full ink → vue-ink parity table.
 
 This project is a direct port of [Ink](https://github.com/vadimdemedes/ink) by Vadim Demedes. The layout, rendering, and component model trace back to that project; vue-ink swaps the React reconciler for a Vue custom renderer.
 
-## License
+## License & attribution
 
-MIT
+MIT — see [`LICENSE`](./LICENSE) (Copyright (c) 2026 Alexander Opalic).
+
+vue-ink embeds, adapts, or links against third-party MIT-licensed software (Ink, Yoga, and the Chalk / Sindre Sorhus ANSI helpers). The full per-source attribution list lives in [`NOTICES.md`](./NOTICES.md).
