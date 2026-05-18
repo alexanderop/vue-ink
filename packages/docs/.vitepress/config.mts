@@ -39,6 +39,7 @@ export default defineConfig({
 					text: 'Recipes',
 					items: [
 						{ text: 'SFC setup', link: '/guide/sfc-setup' },
+						{ text: 'Common patterns', link: '/guide/recipes' },
 						{ text: 'Testing', link: '/guide/testing' },
 						{ text: 'Vue DevTools', link: '/guide/devtools' },
 					],
