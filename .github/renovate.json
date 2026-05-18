@@ -1,0 +1,84 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    ":maintainLockFilesWeekly",
+    ":automergeBranch",
+    "group:monorepos",
+    "group:recommended"
+  ],
+  "rangeStrategy": "bump",
+  "schedule": ["before 6am on monday"],
+  "timezone": "Europe/Vienna",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "internalChecksFilter": "strict",
+  "minimumReleaseAge": "1 day",
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "minimumReleaseAge": null
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Auto-merge patch updates after CI passes",
+      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Auto-merge dev dependency minor updates",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": true
+    },
+    {
+      "description": "Group lint tooling (Oxlint, Oxfmt, ESLint, vite-plus)",
+      "matchPackagePatterns": [
+        "^oxlint",
+        "^oxfmt",
+        "^eslint",
+        "^@typescript-eslint/",
+        "^vite-plus"
+      ],
+      "groupName": "lint tooling"
+    },
+    {
+      "description": "Group Vitest packages",
+      "matchPackagePatterns": ["^vitest", "^@vitest/"],
+      "groupName": "vitest"
+    },
+    {
+      "description": "Group Vue ecosystem (require manual review)",
+      "matchPackagePatterns": ["^vue$", "^@vue/"],
+      "groupName": "vue ecosystem",
+      "automerge": false
+    },
+    {
+      "description": "Yoga layout updates — renderer-critical, manual review",
+      "matchPackageNames": ["yoga-layout"],
+      "automerge": false,
+      "labels": ["renderer-critical"]
+    },
+    {
+      "description": "Group Playwright",
+      "matchPackagePatterns": ["^@playwright/", "^playwright"],
+      "groupName": "playwright"
+    },
+    {
+      "description": "Ignore vendored subtrees",
+      "matchFileNames": ["repos/**"],
+      "enabled": false
+    },
+    {
+      "description": "Pin GitHub Actions to commit digests",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    }
+  ]
+}

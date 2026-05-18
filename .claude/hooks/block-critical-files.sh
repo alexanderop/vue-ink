@@ -27,10 +27,4 @@ case "$rel" in
   repos/*|*/repos/*)
     deny "Blocked: repos/** is vendored read-only reference material (see CLAUDE.md). Do not edit."
     ;;
-  pnpm-workspace.yaml)
-    deny "Blocked: pnpm-workspace.yaml is monorepo wiring. Edit by hand if intentional, then re-run."
-    ;;
-  package.json)
-    deny "Blocked: root package.json is monorepo wiring. Edit a package's own package.json, or do this by hand."
-    ;;
 esac

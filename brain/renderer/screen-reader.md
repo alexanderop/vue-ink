@@ -29,12 +29,12 @@ the DOM directly to produce a flat string of text + ARIA announcements.
     skips reconciliation, Yoga layout, and child lifecycle hooks —
     mirrors ink (`repos/ink/src/components/Box.tsx:76-78`).
 
-## Why metadata on the DOM *and* a setup branch
+## Why metadata on the DOM _and_ a setup branch
 
 We now do both:
 
 - **Metadata on the DOM** — `internal_accessibility.{label, hidden, role,
-  state}` drives the SR walker (`renderNodeToScreenReaderOutput`). This
+state}` drives the SR walker (`renderNodeToScreenReaderOutput`). This
   keeps the visual VDOM stable and lets the walker pick up everything in
   one pass at paint time.
 - **Setup branch in `<Text>` / `<Box>`** — required for ink semantic parity:
@@ -57,16 +57,24 @@ ANSI escapes (bold, color, inverse) leak into the SR stream.
 
 ## Vue prop naming gotcha
 
-Declared `'aria-label'` in a Vue component's `props` block — Vue
-camelizes the key, so inside setup you read `props.ariaLabel`, not
-`props['aria-label']`. Originally tripped this and every aria test
-silently passed `undefined`. The fix is a cast: pull each via
-`(props as Record<string, unknown>)['ariaLabel']`. Users still pass them
-kebab-case (`<Box aria-label="…">`).
+Vue camelizes both **declared** prop names and **incoming** props at
+lookup time. So:
+
+- Declare camelCase (`ariaLabel: { type: String, ... }`) — `props.ariaLabel`
+  is typed and works without any cast.
+- Users still pass either form (`<Box aria-label="…">` in templates,
+  `h(Box, { 'aria-label': '…' })` or `{ ariaLabel }` in render
+  functions); both resolve to the same camelCase declared prop.
+
+Earlier versions of `Box.ts` / `Text.ts` used
+`(props as Record<string, unknown>)['ariaLabel']` to dodge a perceived
+kebab-vs-camel mismatch — that cast is no longer needed and was
+removed. See `packages/components/src/Box.ts:62` and
+`Text.ts:80` for the current pattern.
 
 ## Related
 
 - `repos/ink/test/screen-reader.tsx` — reference tests we ported.
 - `packages/vue-ink/test/behavior/ScreenReader.test.ts` — 25 cases
   covering aria-label/hidden/role/state, display:none, multi-line, lists.
-- [[../porting/from-react-ink]] — aria-* row in the parity table.
+- [[../porting/from-react-ink]] — aria-\* row in the parity table.

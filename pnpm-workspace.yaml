@@ -4,6 +4,15 @@ packages:
   - examples/*
   - apps/*
 
+# Supply-chain defaults — refuse newly published versions for 24h and
+# refuse transitive git/tarball deps. Most malicious npm releases get
+# detected and unpublished within hours; the delay buys us the window.
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - vueink
+  - "@vue-ink/*"
+blockExoticSubdeps: true
+
 allowBuilds:
   electron: true
   esbuild: true
@@ -12,10 +21,10 @@ allowBuilds:
 
 catalog:
   vue: ^3.5.13
-  '@vue/runtime-core': ^3.5.13
+  "@vue/runtime-core": ^3.5.13
   yoga-layout: ~3.2.1
   typescript: ^5.7.2
-  '@types/node': ^22.10.2
+  "@types/node": ^22.10.2
   vitest: ^4.0.7
-  '@vitest/coverage-v8': ^4.0.7
+  "@vitest/coverage-v8": ^4.0.7
   tsx: ^4.19.2

@@ -8,3 +8,15 @@ coverage
 .env.local
 .claude/.brain-extract-stamp
 .claude/worktrees/
+
+# Playwright
+apps/playground/playwright-report/
+apps/playground/test-results/
+apps/playground/.playwright/
+
+# Bench artifacts
+bench-results*.json
+packages/vue-ink/bench-results*.json
+
+# Knip / size-limit caches
+.knip-cache/

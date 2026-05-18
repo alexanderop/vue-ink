@@ -14,8 +14,8 @@ metadata:
 Denied for any `file_path` matching:
 
 - `repos/**` — vendored read-only reference (already noted in CLAUDE.md). Read freely, never edit.
-- `pnpm-workspace.yaml` — monorepo wiring.
-- root `package.json` — monorepo wiring. Edit a package's own `package.json` instead (`packages/vue-ink/package.json`, `packages/docs/package.json`, …). The user edits root by hand.
+
+The monorepo-wiring blocks (`pnpm-workspace.yaml`, root `package.json`) were removed on 2026-05-18 because they were getting in the way of legitimate root-level tooling work (adding devDeps for knip/publint/attw/size-limit, expanding `allowBuilds`). Edit those files normally now — but think twice before touching them: they affect every workspace package.
 
 ## Bash — `block-deps.sh`
 

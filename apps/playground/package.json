@@ -1,35 +1,38 @@
 {
-	"name": "@vue-ink/playground",
-	"version": "0.0.0",
-	"private": true,
-	"description": "Browser playground for vue-ink — edit Vue components on the left, see real ANSI output in xterm.js on the right.",
-	"license": "MIT",
-	"type": "module",
-	"scripts": {
-		"dev": "vite",
-		"build": "vue-tsc --noEmit && vite build",
-		"preview": "vite preview",
-		"typecheck": "vue-tsc --noEmit"
-	},
-	"dependencies": {
-		"@vue-ink/components": "workspace:^",
-		"@vue-ink/core": "workspace:^",
-		"@vue-ink/renderer": "workspace:^",
-		"@vue/repl": "^4.4.0",
-		"@xterm/addon-fit": "^0.10.0",
-		"@xterm/xterm": "^5.5.0",
-		"vue": "catalog:",
-		"vueink": "workspace:^"
-	},
-	"devDependencies": {
-		"@types/node": "catalog:",
-		"@vitejs/plugin-vue": "^5.2.1",
-		"typescript": "catalog:",
-		"vite": "^7.1.0",
-		"vite-plugin-node-polyfills": "^0.22.0",
-		"vue-tsc": "^2.2.0"
-	},
-	"engines": {
-		"node": ">=22"
-	}
+  "name": "@vue-ink/playground",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Browser playground for vue-ink — edit Vue components on the left, see real ANSI output in xterm.js on the right.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium"
+  },
+  "dependencies": {
+    "@vue-ink/components": "workspace:^",
+    "@vue-ink/core": "workspace:^",
+    "@vue-ink/renderer": "workspace:^",
+    "@vue/repl": "^4.4.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "vue": "catalog:",
+    "vueink": "workspace:^"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "catalog:",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "catalog:",
+    "vite": "^7.1.0",
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "vue-tsc": "^2.2.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }

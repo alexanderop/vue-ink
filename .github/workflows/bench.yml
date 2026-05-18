@@ -1,0 +1,78 @@
+name: Bench
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: bench-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  deployments: write
+
+jobs:
+  bench:
+    name: Renderer benches
+    # Pinned to ubuntu-latest so numbers are comparable across runs.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run benches (Vitest JSON reporter)
+        run: |
+          pnpm --filter vueink exec vitest bench --run \
+            --config vitest.bench.config.ts \
+            --reporter=json \
+            --outputFile=bench-results.json
+
+      - name: Normalize Vitest bench JSON for github-action-benchmark
+        run: |
+          node -e "
+            const fs = require('node:fs');
+            const raw = JSON.parse(fs.readFileSync('packages/vue-ink/bench-results.json', 'utf8'));
+            const out = [];
+            const walk = (suite, prefix='') => {
+              for (const t of suite.tasks ?? []) {
+                if (t.result?.benchmark) {
+                  out.push({
+                    name: prefix + t.name,
+                    unit: 'hz',
+                    value: t.result.benchmark.hz,
+                  });
+                } else if (t.tasks) {
+                  walk(t, prefix + t.name + ' › ');
+                }
+              }
+            };
+            for (const f of raw.testResults ?? raw.files ?? []) walk(f);
+            fs.writeFileSync('bench-results.normalized.json', JSON.stringify(out, null, 2));
+            console.log('Normalized', out.length, 'benchmarks');
+          "
+
+      - name: Store and compare bench results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: vue-ink renderer
+          tool: "customBiggerIsBetter"
+          output-file-path: bench-results.normalized.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Only update gh-pages history on main. PRs get a comment-only diff.
+          auto-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          alert-threshold: "150%"
+          fail-on-alert: true
+          comment-on-alert: true
+          comment-always: ${{ github.event_name == 'pull_request' }}
+          summary-always: true

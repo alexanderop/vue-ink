@@ -1,75 +1,76 @@
 {
-	"name": "@vue-ink/core",
-	"version": "0.0.1",
-	"description": "Terminal DOM, layout, and output pipeline for vue-ink. No Vue dependency.",
-	"license": "MIT",
-	"author": "Alexander Opalic <opalic@gmx.net>",
-	"homepage": "https://github.com/alexanderop/vue-ink#readme",
-	"bugs": "https://github.com/alexanderop/vue-ink/issues",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/alexanderop/vue-ink.git",
-		"directory": "packages/core"
-	},
-	"keywords": [
-		"vue",
-		"ink",
-		"terminal",
-		"cli",
-		"tui",
-		"yoga-layout",
-		"vue-ink"
-	],
-	"type": "module",
-	"main": "./src/index.ts",
-	"types": "./src/index.ts",
-	"exports": {
-		".": {
-			"types": "./src/index.ts",
-			"default": "./src/index.ts"
-		}
-	},
-	"files": [
-		"dist",
-		"README.md",
-		"LICENSE"
-	],
-	"publishConfig": {
-		"access": "public",
-		"main": "./dist/index.js",
-		"types": "./dist/index.d.ts",
-		"exports": {
-			".": {
-				"types": "./dist/index.d.ts",
-				"default": "./dist/index.js"
-			}
-		}
-	},
-	"scripts": {
-		"typecheck": "tsc --noEmit",
-		"build": "tsc -p tsconfig.build.json",
-		"clean": "rm -rf dist",
-		"prepublishOnly": "pnpm run clean && pnpm run build"
-	},
-	"dependencies": {
-		"@alcalzone/ansi-tokenize": "^0.3.0",
-		"ansi-styles": "^6.2.3",
-		"chalk": "^5.6.2",
-		"cli-boxes": "^4.0.1",
-		"cli-truncate": "^6.0.0",
-		"indent-string": "^5.0.0",
-		"slice-ansi": "^9.0.0",
-		"string-width": "^8.2.0",
-		"type-fest": "^4.41.0",
-		"widest-line": "^6.0.0",
-		"wrap-ansi": "^10.0.0",
-		"yoga-layout": "catalog:"
-	},
-	"devDependencies": {
-		"@types/node": "catalog:",
-		"typescript": "catalog:"
-	},
-	"engines": {
-		"node": ">=22"
-	}
+  "name": "@vue-ink/core",
+  "version": "0.0.1",
+  "description": "Terminal DOM, layout, and output pipeline for vue-ink. No Vue dependency.",
+  "keywords": [
+    "cli",
+    "ink",
+    "terminal",
+    "tui",
+    "vue",
+    "vue-ink",
+    "yoga-layout"
+  ],
+  "homepage": "https://github.com/alexanderop/vue-ink#readme",
+  "bugs": "https://github.com/alexanderop/vue-ink/issues",
+  "license": "MIT",
+  "author": "Alexander Opalic <opalic@gmx.net>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexanderop/vue-ink.git",
+    "directory": "packages/core"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "lint:package": "publint --strict && attw --pack . --profile node16",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
+  },
+  "dependencies": {
+    "@alcalzone/ansi-tokenize": "^0.3.0",
+    "ansi-styles": "^6.2.3",
+    "chalk": "^5.6.2",
+    "cli-boxes": "^4.0.1",
+    "cli-truncate": "^6.0.0",
+    "indent-string": "^5.0.0",
+    "slice-ansi": "^9.0.0",
+    "string-width": "^8.2.0",
+    "type-fest": "^4.41.0",
+    "widest-line": "^6.0.0",
+    "wrap-ansi": "^10.0.0",
+    "yoga-layout": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }

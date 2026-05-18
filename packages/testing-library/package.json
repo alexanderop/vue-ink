@@ -1,73 +1,74 @@
 {
-	"name": "@vue-ink/testing-library",
-	"version": "0.0.1",
-	"description": "Test utilities for vue-ink — port of ink-testing-library.",
-	"license": "MIT",
-	"author": "Alexander Opalic <opalic@gmx.net>",
-	"homepage": "https://github.com/alexanderop/vue-ink#readme",
-	"bugs": "https://github.com/alexanderop/vue-ink/issues",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/alexanderop/vue-ink.git",
-		"directory": "packages/testing-library"
-	},
-	"keywords": [
-		"vue",
-		"ink",
-		"terminal",
-		"cli",
-		"tui",
-		"testing",
-		"test-utils",
-		"vue-ink"
-	],
-	"type": "module",
-	"main": "./src/index.ts",
-	"types": "./src/index.ts",
-	"exports": {
-		".": {
-			"types": "./src/index.ts",
-			"default": "./src/index.ts"
-		}
-	},
-	"files": [
-		"dist",
-		"README.md",
-		"LICENSE"
-	],
-	"publishConfig": {
-		"access": "public",
-		"main": "./dist/index.js",
-		"types": "./dist/index.d.ts",
-		"exports": {
-			".": {
-				"types": "./dist/index.d.ts",
-				"default": "./dist/index.js"
-			}
-		}
-	},
-	"scripts": {
-		"typecheck": "tsc --noEmit",
-		"build": "tsc -p tsconfig.build.json",
-		"clean": "rm -rf dist",
-		"test": "pnpm typecheck && vitest run",
-		"prepublishOnly": "pnpm run clean && pnpm run build"
-	},
-	"dependencies": {
-		"@vue-ink/renderer": "workspace:^"
-	},
-	"peerDependencies": {
-		"vue": "^3.5.0"
-	},
-	"devDependencies": {
-		"@types/node": "catalog:",
-		"@vue-ink/components": "workspace:^",
-		"strip-ansi": "^7.1.0",
-		"typescript": "catalog:",
-		"vitest": "catalog:",
-		"vue": "catalog:"
-	},
-	"engines": {
-		"node": ">=22"
-	}
+  "name": "@vue-ink/testing-library",
+  "version": "0.0.1",
+  "description": "Test utilities for vue-ink — port of ink-testing-library.",
+  "keywords": [
+    "cli",
+    "ink",
+    "terminal",
+    "test-utils",
+    "testing",
+    "tui",
+    "vue",
+    "vue-ink"
+  ],
+  "homepage": "https://github.com/alexanderop/vue-ink#readme",
+  "bugs": "https://github.com/alexanderop/vue-ink/issues",
+  "license": "MIT",
+  "author": "Alexander Opalic <opalic@gmx.net>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexanderop/vue-ink.git",
+    "directory": "packages/testing-library"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "test": "pnpm typecheck && vitest run",
+    "lint:package": "publint --strict && attw --pack . --profile node16",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
+  },
+  "dependencies": {
+    "@vue-ink/renderer": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vue-ink/components": "workspace:^",
+    "strip-ansi": "^7.1.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "vue": "catalog:"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
 }

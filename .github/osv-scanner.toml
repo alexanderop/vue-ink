@@ -1,0 +1,7 @@
+# OSV-Scanner config — ignore the vendored read-only reference subtrees.
+# Their advisories don't reach our published packages.
+[[PackageOverrides]]
+ecosystem = "npm"
+ignore = true
+reason = "Vendored reference material, not installed deps."
+path = "repos/**"

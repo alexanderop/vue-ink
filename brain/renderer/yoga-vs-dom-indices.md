@@ -19,5 +19,5 @@ Any `v-for` (or any time Vue mounts a Fragment with comment anchors, including c
 ## Related
 
 - `appendChildNode` is safe because it uses `yogaNode.getChildCount()` as the target index — always correct for append-to-end.
-- `removeChildNode` is safe because it passes the yoga node itself (not an index) to `removeChild`.
+- `removeChildNode` skips the index translation by passing the yoga node itself to `removeChild`. **But** it must not free the yoga subtree — see [[keyed-move-yoga-lifetime]]. Lifetime and index are independent concerns; both have to be right.
 - Only insert-at-anchor needed translation.

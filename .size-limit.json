@@ -1,0 +1,44 @@
+[
+  {
+    "name": "vueink (entry, gzipped)",
+    "path": "packages/vue-ink/dist/index.js",
+    "limit": "50 KB",
+    "gzip": true,
+    "ignore": ["vue", "@vue/runtime-core", "yoga-layout", "node:*"]
+  },
+  {
+    "name": "vueink (dts-bundle)",
+    "path": "packages/vue-ink/dist/index.bundle.d.ts",
+    "limit": "150 KB",
+    "gzip": false,
+    "brotli": false
+  },
+  {
+    "name": "@vue-ink/core (entry, gzipped)",
+    "path": "packages/core/dist/index.js",
+    "limit": "30 KB",
+    "gzip": true,
+    "ignore": ["yoga-layout", "node:*"]
+  },
+  {
+    "name": "@vue-ink/renderer (entry, gzipped)",
+    "path": "packages/renderer/dist/index.js",
+    "limit": "20 KB",
+    "gzip": true,
+    "ignore": ["vue", "@vue/runtime-core", "yoga-layout", "@vue/devtools", "ws", "node:*"]
+  },
+  {
+    "name": "@vue-ink/components (entry, gzipped)",
+    "path": "packages/components/dist/index.js",
+    "limit": "15 KB",
+    "gzip": true,
+    "ignore": ["vue", "node:*"]
+  },
+  {
+    "name": "@vue-ink/testing-library (entry, gzipped)",
+    "path": "packages/testing-library/dist/index.js",
+    "limit": "10 KB",
+    "gzip": true,
+    "ignore": ["vue", "@vue-ink/renderer", "node:*"]
+  }
+]

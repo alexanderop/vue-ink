@@ -1,0 +1,58 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["learning/from-scratch.ts"],
+      "project": ["learning/**/*.ts"],
+      "ignoreDependencies": ["rollup", "rollup-plugin-dts"]
+    },
+    "packages/core": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.{ts,vue}"]
+    },
+    "packages/renderer": {
+      "entry": ["src/index.ts", "src/**/*.test.ts"],
+      "project": ["src/**/*.{ts,vue}"]
+    },
+    "packages/components": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.{ts,vue}"]
+    },
+    "packages/testing-library": {
+      "entry": ["src/index.ts", "src/**/*.test.ts"],
+      "project": ["src/**/*.{ts,vue}"]
+    },
+    "packages/vue-ink": {
+      "entry": [
+        "src/index.ts",
+        "bin/vueink.ts",
+        "src/**/*.test.ts",
+        "src/**/*.bench.ts",
+        "vitest.bench.config.ts",
+        "rollup.dts.config.mjs"
+      ],
+      "project": ["src/**/*.{ts,vue}", "bin/**/*.ts"]
+    },
+    "packages/docs": {
+      "entry": [".vitepress/config.{ts,mts}", ".vitepress/theme/index.{ts,mts}"],
+      "project": [".vitepress/**/*.{ts,mts,vue}"]
+    },
+    "apps/playground": {
+      "entry": ["src/main.ts", "vite.config.ts", "playwright.config.ts", "tests/**/*.spec.ts"],
+      "project": ["src/**/*.{ts,vue}", "tests/**/*.ts"]
+    },
+    "examples/**": {
+      "entry": ["*.{ts,vue}", "**/*.{ts,vue}"],
+      "project": ["**/*.{ts,vue}"]
+    }
+  },
+  "ignore": [
+    "repos/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/.vitepress/cache/**",
+    "**/.vitepress/dist/**"
+  ],
+  "ignoreBinaries": ["vp", "oxfmt"],
+  "ignoreDependencies": ["@vue/devtools"]
+}

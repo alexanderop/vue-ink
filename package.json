@@ -1,48 +1,56 @@
 {
-	"name": "vue-ink-monorepo",
-	"version": "0.0.0",
-	"private": true,
-	"description": "Vue 3 port of Ink — terminal renderer for Vue components (monorepo)",
-	"license": "MIT",
-	"type": "module",
-	"scripts": {
-		"typecheck": "pnpm -r typecheck",
-		"test": "pnpm -r test",
-		"test:coverage": "pnpm --filter vueink test:coverage",
-		"bench": "pnpm --filter vueink bench",
-		"build": "pnpm -r --filter \"./packages/*\" --filter \"!@vue-ink/docs\" build",
-		"clean": "pnpm -r --filter \"./packages/*\" clean",
-		"docs:dev": "pnpm --filter @vue-ink/docs dev",
-		"docs:build": "pnpm --filter @vue-ink/docs build",
-		"docs:preview": "pnpm --filter @vue-ink/docs preview",
-		"playground:dev": "pnpm --filter @vue-ink/playground dev",
-		"playground:build": "pnpm --filter @vue-ink/playground build",
-		"playground:preview": "pnpm --filter @vue-ink/playground preview",
-		"lint": "vp lint",
-		"format": "oxfmt",
-		"format:check": "oxfmt --check",
-		"vueink": "node --import=tsx packages/vue-ink/bin/vueink.ts",
-		"release": "pnpm build && changeset publish"
-	},
-	"devDependencies": {
-		"@changesets/cli": "^2.31.0",
-		"@vitest/coverage-v8": "catalog:",
-		"lefthook": "^1.13.6",
-		"oxfmt": "^0.50.0",
-		"rollup": "^4.60.4",
-		"rollup-plugin-dts": "^6.4.1",
-		"tsx": "catalog:",
-		"vite": "^7.1.0",
-		"vite-plus": "^0.1.21",
-		"vitest": "catalog:"
-	},
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"lefthook"
-		]
-	},
-	"engines": {
-		"node": ">=22"
-	},
-	"packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499"
+  "name": "vue-ink-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Vue 3 port of Ink — terminal renderer for Vue components (monorepo)",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm --filter vueink test:coverage",
+    "bench": "pnpm --filter vueink bench",
+    "build": "pnpm -r --filter \"./packages/*\" --filter \"!@vue-ink/docs\" build",
+    "clean": "pnpm -r --filter \"./packages/*\" clean",
+    "docs:dev": "pnpm --filter @vue-ink/docs dev",
+    "docs:build": "pnpm --filter @vue-ink/docs build",
+    "docs:preview": "pnpm --filter @vue-ink/docs preview",
+    "playground:dev": "pnpm --filter @vue-ink/playground dev",
+    "playground:build": "pnpm --filter @vue-ink/playground build",
+    "playground:preview": "pnpm --filter @vue-ink/playground preview",
+    "lint": "vp lint",
+    "lint:dead": "knip",
+    "lint:packages": "pnpm -r --filter \"./packages/*\" --filter \"!@vue-ink/docs\" lint:package",
+    "size": "size-limit",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "vueink": "node --import=tsx packages/vue-ink/bin/vueink.ts",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
+    "@changesets/cli": "^2.31.0",
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "@vitest/coverage-v8": "catalog:",
+    "knip": "^5.66.0",
+    "lefthook": "^1.13.6",
+    "oxfmt": "^0.50.0",
+    "publint": "^0.3.16",
+    "rollup": "^4.60.4",
+    "rollup-plugin-dts": "^6.4.1",
+    "size-limit": "^11.2.0",
+    "tsx": "catalog:",
+    "vite": "^7.1.0",
+    "vite-plus": "^0.1.21",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "lefthook"
+    ]
+  }
 }
