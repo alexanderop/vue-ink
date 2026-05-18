@@ -5,6 +5,16 @@ import { afterEach, vi } from 'vitest';
 
 process.env['FORCE_COLOR'] = 'true';
 
+// CI runners (GitHub Actions etc.) set `CI=true`, which makes `isCiEnv()` in
+// the renderer flip to true and force `interactive: false` — even for tests
+// that mock `isTTY = true` on a captured stream. Strip the CI-detection env
+// vars so the suite sees a clean shell. Tests that intentionally exercise
+// CI behavior set their own value via `withEnv()` (see `RenderInteractive.test.ts`).
+delete process.env['CI'];
+delete process.env['CONTINUOUS_INTEGRATION'];
+delete process.env['BUILD_NUMBER'];
+delete process.env['RUN_ID'];
+
 // Defensive: a fake-timer leak from one test can hang subsequent tests on real
 // setTimeouts. Force real timers between every test, no matter who forgot.
 afterEach(() => {
