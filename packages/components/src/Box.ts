@@ -24,6 +24,27 @@ export type BoxProps = Omit<Styles, 'textWrap'> & {
 
 const ARIA_KEYS = new Set(['ariaLabel', 'ariaHidden', 'ariaRole', 'ariaState']);
 
+/**
+ * `<Box>` is the primary layout container. It maps onto a Yoga flex node, so
+ * every {@link BoxProps} property (`flexDirection`, `gap`, `borderStyle`,
+ * `padding`, …) behaves like CSS flexbox — but laid out in character cells
+ * inside the terminal. Boxes can be nested arbitrarily; place `<Text>` inside
+ * them for content.
+ *
+ * @example
+ * ```vue
+ * <script setup lang="ts">
+ * import { Box, Text } from 'vueink';
+ * </script>
+ *
+ * <template>
+ *   <Box flexDirection="column" borderStyle="round" :padding="1">
+ *     <Text bold>Title</Text>
+ *     <Text>Body</Text>
+ *   </Box>
+ * </template>
+ * ```
+ */
 const Box = defineComponent({
 	name: 'Box',
 	props: {

@@ -36,6 +36,25 @@ export type TextProps = {
 	'aria-hidden'?: boolean;
 };
 
+/**
+ * `<Text>` is the leaf container for terminal text. It applies ANSI styling
+ * (`color`, `bold`, `italic`, `underline`, `strikethrough`, `inverse`, …)
+ * and controls text wrapping inside its parent `<Box>`. Nest other `<Text>`
+ * elements to compose styled runs; non-text children render as plain
+ * stringified content.
+ *
+ * @example
+ * ```vue
+ * <script setup lang="ts">
+ * import { Text } from 'vueink';
+ * </script>
+ *
+ * <template>
+ *   <Text color="green" bold>OK</Text>
+ *   <Text> — task completed</Text>
+ * </template>
+ * ```
+ */
 const Text = defineComponent({
 	name: 'Text',
 	props: {

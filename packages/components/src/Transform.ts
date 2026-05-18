@@ -15,6 +15,26 @@ export type TransformProps = {
 	accessibilityLabel?: string;
 };
 
+/**
+ * `<Transform>` post-processes the rendered string of its `<Text>` children
+ * before it lands in the frame. The `transform` callback receives the
+ * already-styled output (ANSI escapes included) and returns the replacement
+ * string. Useful for case mapping, decoration, or wrapping individual
+ * characters in extra escapes without re-implementing wrap logic upstream.
+ *
+ * @example
+ * ```vue
+ * <script setup lang="ts">
+ * import { Text, Transform } from 'vueink';
+ * </script>
+ *
+ * <template>
+ *   <Transform :transform="(s) => s.toUpperCase()">
+ *     <Text>shouting</Text>
+ *   </Transform>
+ * </template>
+ * ```
+ */
 const Transform = defineComponent({
 	name: 'Transform',
 	props: {
