@@ -1,192 +1,303 @@
-import { describe, it, expect } from 'vitest';
-import { h, defineComponent, ref } from 'vue';
-import stripAnsi from 'strip-ansi';
-import { render, Static, Box, Text } from '../src/index.ts';
-import { createCaptureStream, flush, renderToString } from './helpers.ts';
+import { describe, it, expect } from "vitest";
+import { h, defineComponent, ref } from "vue";
+import stripAnsi from "strip-ansi";
+import { render, Static, Box, Text } from "../src/index.ts";
+import { createCaptureStream, flush, renderToString } from "./helpers.ts";
 
-describe('<Static>', () => {
-	it('renders every item once and lays them out in column order (debug mode)', async () => {
-		const App = defineComponent({
-			setup: () => () =>
-				h(Box, null, () => [
-					h(
-						Static,
-						{ items: ['A', 'B', 'C'] },
-						{ default: ({ item }: { item: string }) => h(Text, null, () => item) },
-					),
-					h(Box, { marginTop: 1 }, () => h(Text, null, () => 'X')),
-				]),
-		});
+type Task = { id: string; label: string };
 
-		const out = await renderToString(App, { columns: 20 });
-		// All three static items appear, in order, ABOVE the dynamic content.
-		expect(out).toContain('A');
-		expect(out).toContain('B');
-		expect(out).toContain('C');
-		expect(out).toContain('X');
-		expect(out.indexOf('A')).toBeLessThan(out.indexOf('B'));
-		expect(out.indexOf('B')).toBeLessThan(out.indexOf('C'));
-	});
+describe("<Static>", () => {
+  it("renders every item once and lays them out in column order (debug mode)", async () => {
+    const App = defineComponent({
+      setup: () => () =>
+        h(Box, null, () => [
+          h(
+            Static,
+            { items: ["A", "B", "C"] },
+            { default: ({ item }: { item: string }) => h(Text, null, () => item) },
+          ),
+          h(Box, { marginTop: 1 }, () => h(Text, null, () => "X")),
+        ]),
+    });
 
-	it('appending to items writes the new rows once and does not re-render previous rows', async () => {
-		const stdout = createCaptureStream(20);
-		const items = ref<string[]>([]);
-		const App = defineComponent({
-			setup: () => () =>
-				h(
-					Static,
-					{ items: items.value },
-					{ default: ({ item }: { item: string }) => h(Text, null, () => item) },
-				),
-		});
+    const out = await renderToString(App, { columns: 20 });
+    // All three static items appear, in order, ABOVE the dynamic content.
+    expect(out).toContain("A");
+    expect(out).toContain("B");
+    expect(out).toContain("C");
+    expect(out).toContain("X");
+    expect(out.indexOf("A")).toBeLessThan(out.indexOf("B"));
+    expect(out.indexOf("B")).toBeLessThan(out.indexOf("C"));
+  });
 
-		const instance = render(App, { stdout, debug: true });
-		await flush();
-		const baseline = stdout.frames.length;
+  it("appending to items writes the new rows once and does not re-render previous rows", async () => {
+    const stdout = createCaptureStream(20);
+    const items = ref<string[]>([]);
+    const App = defineComponent({
+      setup: () => () =>
+        h(
+          Static,
+          { items: items.value },
+          { default: ({ item }: { item: string }) => h(Text, null, () => item) },
+        ),
+    });
 
-		items.value = ['A'];
-		await flush();
-		const afterA = stdout.frames.length;
-		expect(afterA).toBeGreaterThan(baseline);
-		const aFrame = stdout.frames[afterA - 1] ?? '';
-		expect(stripAnsi(aFrame)).toContain('A');
+    const instance = render(App, { stdout, debug: true });
+    await flush();
+    const baseline = stdout.frames.length;
 
-		items.value = ['A', 'B'];
-		await flush();
-		const afterB = stdout.frames[stdout.frames.length - 1] ?? '';
-		expect(stripAnsi(afterB)).toContain('B');
+    items.value = ["A"];
+    await flush();
+    const afterA = stdout.frames.length;
+    expect(afterA).toBeGreaterThan(baseline);
+    const aFrame = stdout.frames[afterA - 1] ?? "";
+    expect(stripAnsi(aFrame)).toContain("A");
 
-		items.value = ['A', 'B', 'C'];
-		await flush();
-		const afterC = stdout.frames[stdout.frames.length - 1] ?? '';
-		expect(stripAnsi(afterC)).toContain('C');
+    items.value = ["A", "B"];
+    await flush();
+    const afterB = stdout.frames[stdout.frames.length - 1] ?? "";
+    expect(stripAnsi(afterB)).toContain("B");
 
-		instance.unmount();
-	});
+    items.value = ["A", "B", "C"];
+    await flush();
+    const afterC = stdout.frames[stdout.frames.length - 1] ?? "";
+    expect(stripAnsi(afterC)).toContain("C");
 
-	it('does not erase previous static rows when the live frame repaints', async () => {
-		const stdout = createCaptureStream(20);
-		const items = ref(['log:1', 'log:2']);
-		const counter = ref(0);
-		const App = defineComponent({
-			setup: () => () =>
-				h(Box, { flexDirection: 'column' }, () => [
-					h(
-						Static,
-						{ items: items.value },
-						{ default: ({ item }: { item: string }) => h(Text, null, () => item) },
-					),
-					h(Text, null, () => `live=${counter.value}`),
-				]),
-		});
+    instance.unmount();
+  });
 
-		const instance = render(App, { stdout, interactive: true });
-		await instance.waitUntilRenderFlush();
+  it("does not erase previous static rows when the live frame repaints", async () => {
+    const stdout = createCaptureStream(20);
+    const items = ref(["log:1", "log:2"]);
+    const counter = ref(0);
+    const App = defineComponent({
+      setup: () => () =>
+        h(Box, { flexDirection: "column" }, () => [
+          h(
+            Static,
+            { items: items.value },
+            { default: ({ item }: { item: string }) => h(Text, null, () => item) },
+          ),
+          h(Text, null, () => `live=${counter.value}`),
+        ]),
+    });
 
-		const initialJoin = stdout.frames.join('');
-		expect(stripAnsi(initialJoin)).toContain('log:1');
-		expect(stripAnsi(initialJoin)).toContain('log:2');
+    const instance = render(App, { stdout, interactive: true });
+    await instance.waitUntilRenderFlush();
 
-		// Drive several live-frame repaints — none of them must trigger a
-		// re-render of the existing static rows.
-		const initialFrameCount = stdout.frames.length;
-		for (let i = 1; i <= 5; i += 1) {
-			counter.value = i;
-			await instance.waitUntilRenderFlush();
-		}
+    const initialJoin = stdout.frames.join("");
+    expect(stripAnsi(initialJoin)).toContain("log:1");
+    expect(stripAnsi(initialJoin)).toContain("log:2");
 
-		// After repainting the live frame 5 more times, the new chunks must not
-		// contain "log:1" or "log:2" — they were written once and never again.
-		const afterLiveChanges = stdout.frames.slice(initialFrameCount).join('');
-		expect(stripAnsi(afterLiveChanges)).not.toContain('log:1');
-		expect(stripAnsi(afterLiveChanges)).not.toContain('log:2');
-		expect(stripAnsi(stdout.frames.at(-1) ?? '')).toContain('live=5');
+    // Drive several live-frame repaints — none of them must trigger a
+    // re-render of the existing static rows.
+    const initialFrameCount = stdout.frames.length;
+    for (let i = 1; i <= 5; i += 1) {
+      counter.value = i;
+      await instance.waitUntilRenderFlush();
+    }
 
-		instance.unmount();
-	});
+    // After repainting the live frame 5 more times, the new chunks must not
+    // contain "log:1" or "log:2" — they were written once and never again.
+    const afterLiveChanges = stdout.frames.slice(initialFrameCount).join("");
+    expect(stripAnsi(afterLiveChanges)).not.toContain("log:1");
+    expect(stripAnsi(afterLiveChanges)).not.toContain("log:2");
+    expect(stripAnsi(stdout.frames.at(-1) ?? "")).toContain("live=5");
 
-	it('emits new items above the live frame with one trailing newline', async () => {
-		const stdout = createCaptureStream(20);
-		const items = ref<string[]>([]);
-		const counter = ref(0);
-		const App = defineComponent({
-			setup: () => () =>
-				h(Box, { flexDirection: 'column' }, () => [
-					h(
-						Static,
-						{ items: items.value },
-						{ default: ({ item }: { item: string }) => h(Text, null, () => item) },
-					),
-					h(Text, null, () => `live=${counter.value}`),
-				]),
-		});
+    instance.unmount();
+  });
 
-		const instance = render(App, { stdout, interactive: true });
-		await instance.waitUntilRenderFlush();
-		const before = stdout.frames.length;
+  it("emits new items above the live frame with one trailing newline", async () => {
+    const stdout = createCaptureStream(20);
+    const items = ref<string[]>([]);
+    const counter = ref(0);
+    const App = defineComponent({
+      setup: () => () =>
+        h(Box, { flexDirection: "column" }, () => [
+          h(
+            Static,
+            { items: items.value },
+            { default: ({ item }: { item: string }) => h(Text, null, () => item) },
+          ),
+          h(Text, null, () => `live=${counter.value}`),
+        ]),
+    });
 
-		items.value = ['done:foo'];
-		await instance.waitUntilRenderFlush();
+    const instance = render(App, { stdout, interactive: true });
+    await instance.waitUntilRenderFlush();
+    const before = stdout.frames.length;
 
-		const newChunks = stdout.frames.slice(before).join('');
-		expect(stripAnsi(newChunks)).toContain('done:foo');
-		instance.unmount();
-	});
+    items.value = ["done:foo"];
+    await instance.waitUntilRenderFlush();
 
-	it('does not duplicate surviving items above the live frame when the array shrinks in place', async () => {
-		// Static is append-only: scrollback cannot be erased. If the array
-		// shrinks (or otherwise diverges from the previous emission), we must
-		// NOT fall back to re-emitting the full new list — that would push
-		// duplicates of the survivors into scrollback above the prior copies.
-		const stdout = createCaptureStream(20);
-		const items = ref<string[]>(['A', 'B', 'C']);
-		const counter = ref(0);
-		const App = defineComponent({
-			setup: () => () =>
-				h(Box, { flexDirection: 'column' }, () => [
-					h(
-						Static,
-						{ items: items.value },
-						{ default: ({ item }: { item: string }) => h(Text, null, () => item) },
-					),
-					h(Text, null, () => `live=${counter.value}`),
-				]),
-		});
+    const newChunks = stdout.frames.slice(before).join("");
+    expect(stripAnsi(newChunks)).toContain("done:foo");
+    instance.unmount();
+  });
 
-		const instance = render(App, { stdout, interactive: true });
-		await instance.waitUntilRenderFlush();
-		const afterInitial = stdout.frames.length;
+  it("does not duplicate surviving items above the live frame when the array shrinks in place", async () => {
+    // Static is append-only: scrollback cannot be erased. If the array
+    // shrinks (or otherwise diverges from the previous emission), we must
+    // NOT fall back to re-emitting the full new list — that would push
+    // duplicates of the survivors into scrollback above the prior copies.
+    const stdout = createCaptureStream(20);
+    const items = ref<string[]>(["A", "B", "C"]);
+    const counter = ref(0);
+    const App = defineComponent({
+      setup: () => () =>
+        h(Box, { flexDirection: "column" }, () => [
+          h(
+            Static,
+            { items: items.value },
+            { default: ({ item }: { item: string }) => h(Text, null, () => item) },
+          ),
+          h(Text, null, () => `live=${counter.value}`),
+        ]),
+    });
 
-		// User mutates the array in place, removing the middle item. The new
-		// output ('A\nC') doesn't start with the previous ('A\nB\nC'), so the
-		// old "emit everything new" fallback would push 'A' and 'C' a second
-		// time into scrollback above the live frame.
-		items.value = ['A', 'C'];
-		counter.value += 1;
-		await instance.waitUntilRenderFlush();
+    const instance = render(App, { stdout, interactive: true });
+    await instance.waitUntilRenderFlush();
+    const afterInitial = stdout.frames.length;
 
-		const post = stripAnsi(stdout.frames.slice(afterInitial).join(''));
-		// 'A' must not be re-emitted (it's already in scrollback above).
-		expect(post).not.toContain('A');
-		instance.unmount();
-	});
+    // User mutates the array in place, removing the middle item. The new
+    // output ('A\nC') doesn't start with the previous ('A\nB\nC'), so the
+    // old "emit everything new" fallback would push 'A' and 'C' a second
+    // time into scrollback above the live frame.
+    items.value = ["A", "C"];
+    counter.value += 1;
+    await instance.waitUntilRenderFlush();
 
-	it('passes the index argument alongside the item to the default slot', async () => {
-		const App = defineComponent({
-			setup: () => () =>
-				h(
-					Static,
-					{ items: ['a', 'b', 'c'] },
-					{
-						default: ({ item, index }: { item: string; index: number }) =>
-							h(Text, null, () => `${index}=${item}`),
-					},
-				),
-		});
+    const post = stripAnsi(stdout.frames.slice(afterInitial).join(""));
+    // 'A' must not be re-emitted (it's already in scrollback above).
+    expect(post).not.toContain("A");
+    instance.unmount();
+  });
 
-		const out = await renderToString(App, { columns: 20 });
-		expect(out).toContain('0=a');
-		expect(out).toContain('1=b');
-		expect(out).toContain('2=c');
-	});
+  it("passes the index argument alongside the item to the default slot", async () => {
+    const App = defineComponent({
+      setup: () => () =>
+        h(
+          Static,
+          { items: ["a", "b", "c"] },
+          {
+            default: ({ item, index }: { item: string; index: number }) =>
+              h(Text, null, () => `${index}=${item}`),
+          },
+        ),
+    });
+
+    const out = await renderToString(App, { columns: 20 });
+    expect(out).toContain("0=a");
+    expect(out).toContain("1=b");
+    expect(out).toContain("2=c");
+  });
+});
+
+describe("<Static> component edge cases", () => {
+  it("renders nothing for an empty array", async () => {
+    const Demo = defineComponent({
+      setup: () => () =>
+        h(Box, { flexDirection: "column" }, () => [
+          h(
+            Static,
+            { items: [] },
+            { default: ({ item }: { item: string }) => h(Text, null, () => item) },
+          ),
+          h(Text, null, () => "after"),
+        ]),
+    });
+    const out = await renderToString(Demo, { columns: 20 });
+    // "after" is the only visible content; Static contributed no rows.
+    expect(out).toBe("after");
+  });
+
+  it("renders a single-element array", async () => {
+    const Demo = defineComponent({
+      setup: () => () =>
+        h(
+          Static,
+          { items: ["only"] },
+          { default: ({ item }: { item: string }) => h(Text, null, () => item) },
+        ),
+    });
+    const out = await renderToString(Demo, { columns: 20 });
+    expect(out).toContain("only");
+  });
+
+  it("renders duplicate string values both times", async () => {
+    const Demo = defineComponent({
+      setup: () => () =>
+        h(
+          Static,
+          { items: ["A", "A"] },
+          { default: ({ item }: { item: string }) => h(Text, null, () => item) },
+        ),
+    });
+    const out = await renderToString(Demo, { columns: 20 });
+    // Both 'A' rows must appear — verify a single 'A' is not deduped away.
+    const lines = out.split("\n").filter((line) => line.trim().length > 0);
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    expect(lines[0]).toBe("A");
+    expect(lines[1]).toBe("A");
+  });
+
+  it("renders an array of objects using the item.id as a key", async () => {
+    const tasks: Task[] = [
+      { id: "t1", label: "first" },
+      { id: "t2", label: "second" },
+      { id: "t3", label: "third" },
+    ];
+    const Demo = defineComponent({
+      setup: () => () =>
+        h(
+          Static,
+          { items: tasks },
+          {
+            default: ({ item }: { item: Task }) => h(Text, { key: item.id }, () => item.label),
+          },
+        ),
+    });
+    const out = await renderToString(Demo, { columns: 20 });
+    expect(out).toContain("first");
+    expect(out).toContain("second");
+    expect(out).toContain("third");
+    expect(out.indexOf("first")).toBeLessThan(out.indexOf("second"));
+    expect(out.indexOf("second")).toBeLessThan(out.indexOf("third"));
+  });
+
+  it("passes a zero-based index alongside the item to the slot", async () => {
+    const Demo = defineComponent({
+      setup: () => () =>
+        h(
+          Static,
+          { items: ["x", "y", "z"] },
+          {
+            default: ({ item, index }: { item: string; index: number }) =>
+              h(Text, null, () => `${index}-${item}`),
+          },
+        ),
+    });
+    const out = await renderToString(Demo, { columns: 20 });
+    expect(out).toContain("0-x");
+    expect(out).toContain("1-y");
+    expect(out).toContain("2-z");
+  });
+
+  it("applies a custom style prop to the container box", async () => {
+    // Custom styles merge with Static's defaults (position:absolute,
+    // flexDirection:column). Adding paddingLeft shifts every item right.
+    const Demo = defineComponent({
+      setup: () => () =>
+        h(
+          Static,
+          { items: ["a", "b"], style: { paddingLeft: 3 } },
+          { default: ({ item }: { item: string }) => h(Text, null, () => item) },
+        ),
+    });
+    const out = await renderToString(Demo, { columns: 20 });
+    const lines = out.split("\n").filter((line) => line.length > 0);
+    // Each item is shifted right by 3 spaces.
+    expect(lines[0]).toBe("   a");
+    expect(lines[1]).toBe("   b");
+  });
 });

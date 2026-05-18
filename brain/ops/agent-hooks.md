@@ -27,6 +27,8 @@ Gated by `if: "Bash(pnpm add *)"` in settings. Denies `pnpm add <pkg>` without `
 
 `PostToolUse(Edit|Write)` pipes the edited file to `pnpm exec oxfmt`. You do not need to format manually after writes — oxfmt is the project's formatter (no prettier, no eslint --fix in this role). It silently warns "no config found" on each run; that's harmless.
 
+**Watch for diff bloat.** The hook reformats _only_ the file you touched, so the rest of the repo still uses the original tabs + single-quote style. Edit a file with non-trivial pre-existing style drift (e.g. `packages/renderer/src/render.ts`) and the resulting diff balloons with quote / indentation churn that drowns the real change. Use `git diff -w` to confirm the substantive delta is small, and split a separate `style(scope): apply oxfmt to <file>` commit so reviewers can scan the behavioral change in isolation.
+
 ## Related
 
 - [[../principles/encode-lessons-in-structure]] — the hooks are the enforcement; this note is a heads-up so you don't bounce off them
