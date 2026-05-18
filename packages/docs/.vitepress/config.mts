@@ -40,6 +40,7 @@ export default defineConfig({
 					items: [
 						{ text: 'SFC setup', link: '/guide/sfc-setup' },
 						{ text: 'Testing', link: '/guide/testing' },
+						{ text: 'Vue DevTools', link: '/guide/devtools' },
 					],
 				},
 			],
