@@ -30,13 +30,20 @@ type RenderOptions = {
 	debug?: boolean                     // append frames instead of erasing
 	exitOnCtrlC?: boolean               // default: true
 	patchConsole?: boolean              // default: true; routes console.* through ink
-	onRender?: (frame: string) => void
+	onRender?: (metrics: RenderMetrics) => void
 	isScreenReaderEnabled?: boolean     // emit accessibility tree only
 	maxFps?: number                     // default: 30; frame throttle
 	incrementalRendering?: boolean      // default: true; diff against last frame
 	interactive?: boolean               // default: true (requires TTY)
 	alternateScreen?: boolean           // use alt-screen buffer (vim-style)
 	kittyKeyboard?: boolean             // enable kitty keyboard protocol if supported
+}
+
+type RenderMetrics = {
+	frame: number       // monotonic frame index (1-based)
+	renderTime: number  // time spent rendering this frame, ms (matches ink)
+	lineCount: number   // number of lines in the painted frame
+	output: string      // the frame string written to stdout
 }
 ```
 
@@ -54,17 +61,19 @@ type RenderOptions = {
 type Instance = {
 	rerender(component: Component): void
 	unmount(): void
-	waitUntilExit(): Promise<void>
+	waitUntilExit(): Promise<unknown>
 	waitUntilRenderFlush(): Promise<void>
 	clear(): void
+	cleanup(): void
 }
 ```
 
 - `rerender(component)` — swap the root component. Useful for live-reloading or wrapping in providers.
 - `unmount()` — tear down. Restores raw mode, stops the SIGWINCH listener, unpatches console.
-- `waitUntilExit()` — resolves when the user exits (Ctrl-C, by default) or when `unmount()` is called. Most CLIs `await` this to keep the process alive.
+- `waitUntilExit()` — resolves when the user exits (Ctrl-C, by default) or when `unmount()` is called. If `useApp().exit(value)` was called the promise resolves with that value; passing an `Error` rejects it. Most CLIs `await` this to keep the process alive.
 - `waitUntilRenderFlush()` — resolves after the next frame has been painted. Useful in tests.
 - `clear()` — erase the previously-rendered frame from the terminal.
+- `cleanup()` — alias of `unmount()`, present for ink compatibility. Unmounts the app and removes the internal instance for this stdout so a follow-up `render()` against the same stream starts fresh.
 
 ## See also
 
