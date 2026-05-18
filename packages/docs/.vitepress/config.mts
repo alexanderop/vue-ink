@@ -42,6 +42,7 @@ export default defineConfig({
 						{ text: 'Common patterns', link: '/guide/recipes' },
 						{ text: 'Testing', link: '/guide/testing' },
 						{ text: 'Vue DevTools', link: '/guide/devtools' },
+						{ text: 'Migrating from Ink', link: '/guide/migrating-from-ink' },
 					],
 				},
 			],
