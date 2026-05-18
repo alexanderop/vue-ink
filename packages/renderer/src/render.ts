@@ -323,6 +323,33 @@ const renderTree = (
 	return { output: text, height, staticOutput };
 };
 
+/**
+ * Mount a Vue component into the terminal and start the live render loop.
+ * Returns an {@link Instance} handle for rerendering, unmounting, and
+ * awaiting exit. Only one live renderer per stdout is allowed — a second
+ * `render()` call against the same stream warns and returns the existing
+ * instance without applying the new tree.
+ *
+ * In a TTY (and outside CI), the renderer paints over previous frames using
+ * ANSI escapes; in non-interactive streams (CI, pipes, redirects) only the
+ * final frame is emitted on unmount. Behaviour is configurable through
+ * {@link RenderOptions} — alt-screen mode, FPS cap, console patching, screen
+ * reader output, and more.
+ *
+ * @param component - The Vue component to mount as the root of the tree.
+ * @param options - See {@link RenderOptions} for the full surface.
+ * @returns An {@link Instance} controlling the live renderer.
+ *
+ * @example
+ * ```ts
+ * import { h } from 'vue';
+ * import { render, Text } from 'vueink';
+ *
+ * const App = { render: () => h(Text, () => 'Hello, world!') };
+ * const { waitUntilExit } = render(App);
+ * await waitUntilExit();
+ * ```
+ */
 const render = (component: Component, options: RenderOptions = {}): Instance => {
 	const stdout = options.stdout ?? process.stdout;
 	const stdin = options.stdin ?? process.stdin;
