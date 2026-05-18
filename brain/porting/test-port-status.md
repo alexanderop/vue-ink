@@ -158,7 +158,7 @@ internal helpers that aren't reachable through Box/Text alone. Keep them.
 | `InputMultiListener.test.ts`          | Multiple `useInput` listeners on one stdin                  |
 | `InkCompatTypes.test.ts`              | Re-exported ink-compat type aliases ([[api-tracker#type-aliases-ink-compat-re-exports]]) |
 | `Counter.test.ts`                     | Reactive counter end-to-end smoke test                      |
-| `CoverageStragglers.test.ts` + `FinalCoverage.test.ts` | One-off branches needed for 100% coverage          |
+| `CoverageStragglers.test.ts` + `FinalCoverage.test.ts` | Renderer/host branches with no ink-equivalent surface: exitOnCtrlC, beforeExit, patchProp structural-prop bypass, host insert anchors, default textWrap, patchProp idempotency, style→undefined, setAttribute fallback, TEXT_CHILDREN setElementText, ink-text dirty-marking, zero-area background paint, style auto-branches, setText vs setElementText, Transform updates, setStyle clearing, signal-handler symmetry, renderNodeToOutput edges, non-printable input keys. Named "coverage" historically but each test guards a specific failure mode (see top-of-file comments). |
 | `behavior/IncrementalRendering.test.ts` | `incrementalRendering: true` option (vue-ink extension)   |
 
 ---
