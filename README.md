@@ -132,6 +132,7 @@ Renders styled text. Props:
 - Reactive re-renders driven by Vue's scheduler
 - Screen-reader / ARIA support on `<Box>` and `<Text>`
 - Testing helpers via `@vue-ink/testing-library` (port of `ink-testing-library`)
+- Optional [Vue DevTools](https://devtools.vuejs.org/) integration — set `DEV=true` to inspect the live component tree ([guide](https://github.com/alexanderop/vue-ink/blob/main/packages/docs/guide/devtools.md))
 
 See `brain/porting/api-tracker.md` for the full ink → vue-ink parity table.
 
