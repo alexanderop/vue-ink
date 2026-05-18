@@ -17,9 +17,10 @@
 		"docs:preview": "pnpm --filter @vue-ink/docs preview",
 		"lint": "vp lint",
 		"vueink": "node --import=tsx packages/vue-ink/bin/vueink.ts",
-		"release": "pnpm run build && pnpm publish -r --access public --filter \"./packages/*\""
+		"release": "pnpm build && changeset publish"
 	},
 	"devDependencies": {
+		"@changesets/cli": "^2.31.0",
 		"@vitest/coverage-v8": "catalog:",
 		"lefthook": "^1.13.6",
 		"tsx": "catalog:",
