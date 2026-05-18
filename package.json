@@ -19,6 +19,8 @@
 		"playground:build": "pnpm --filter @vue-ink/playground build",
 		"playground:preview": "pnpm --filter @vue-ink/playground preview",
 		"lint": "vp lint",
+		"format": "oxfmt",
+		"format:check": "oxfmt --check",
 		"vueink": "node --import=tsx packages/vue-ink/bin/vueink.ts",
 		"release": "pnpm build && changeset publish"
 	},
@@ -26,6 +28,7 @@
 		"@changesets/cli": "^2.31.0",
 		"@vitest/coverage-v8": "catalog:",
 		"lefthook": "^1.13.6",
+		"oxfmt": "^0.50.0",
 		"tsx": "catalog:",
 		"vite": "^7.1.0",
 		"vite-plus": "^0.1.21",
