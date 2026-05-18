@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ink (upstream) issues
+    url: https://github.com/vadimdemedes/ink/issues
+    about: If the same behaviour reproduces in react-ink, it's likely an upstream issue — report it there too.
+  - name: Vue questions
+    url: https://github.com/vuejs/core/discussions
+    about: General Vue 3 reactivity / component questions belong in the Vue discussions.
