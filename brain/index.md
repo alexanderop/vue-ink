@@ -37,6 +37,7 @@
 - [[renderer/ci-detection]] — `isCiEnv()` parses falsy strings correctly; presence-only vars still flip non-interactive
 - [[renderer/host-portability]] — guards that keep `render()` callable from non-Node hosts (browser playground)
 - [[renderer/wide-char-overlay-cleanup]] — overlay frame clears half of a wide char left behind by a previous frame
+- [[renderer/debug-mode-write-replay]] — `useStdout/useStderr.write()` in `debug: true` must be a single combined write; also fixed mount-time double-paint
 
 ## Components
 
@@ -60,6 +61,7 @@
 - [[porting/test-port-status]] — file-by-file map of ink's test suite to vue-ink's, with the remaining gaps called out
 - [[porting/inlined-deps-lose-edge-cases]] — where vue-ink inlines what ink imports as a tiny package, the edge cases get dropped
 - [[porting/tracker-drift]] — parity trackers drift; verify against `repos/ink/` first
+- [[porting/test-parity-is-scenario-level]] — file-level test mapping ≠ scenario-level coverage; count `test(...)` blocks, not files
 
 ## Apps / Playground
 
