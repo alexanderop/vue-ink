@@ -42,6 +42,18 @@ not visible. The stub is what keeps it from throwing.
 otherwise the `vue` regex eats the prefix of the hyphenated names and
 corrupts them. The current code orders them correctly — don't reorder.
 
+## Run context is single-flight
+
+`runtime-context.ts` is a mutable bridge for the real xterm preview. Initial
+REPL compilation and edit bursts can produce several compiled JS snapshots; if
+`TerminalPreview` starts overlapping imports, one run can clear the active
+context while another run's proxy `render()` is still resuming. The visible
+symptom is `vue-ink playground: no active run context`.
+
+Keep `TerminalPreview`'s execution queue serialized and coalesce stale sources.
+If the runner ever grows direct cancellation, preserve the rule that stale runs
+must not clear another run's context.
+
 ## Related
 
 - [[../renderer/how-it-works]] — why `render()` needs stdout/stdin/stderr

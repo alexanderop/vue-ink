@@ -29,6 +29,9 @@ const active = shallowRef<RunResult>();
 const errorMessage = ref("");
 
 let observer: ResizeObserver | undefined;
+let disposed = false;
+let latestRunId = 0;
+let runQueue = Promise.resolve();
 
 const clearAndWrite = (line: string): void => {
   term.value?.write(CLEAR_AND_HOME);
@@ -41,18 +44,35 @@ const teardownActive = async (): Promise<void> => {
   if (current) await current.dispose();
 };
 
-const runCompiled = async (source: string): Promise<void> => {
+const runCompiledNow = async (source: string): Promise<void> => {
+  if (disposed) return;
   if (!term.value) return;
   await teardownActive();
+  if (disposed) return;
   clearAndWrite("");
   errorMessage.value = "";
   const outcome = await runUserCode(term.value, source);
+  if (disposed) {
+    if (outcome.ok) await outcome.result.dispose();
+    return;
+  }
   if (!outcome.ok) {
     errorMessage.value = outcome.error.message;
     clearAndWrite(`${RED}✖${RESET} ${outcome.error.message.replace(/\n/g, "\r\n")}\r\n`);
     return;
   }
   active.value = outcome.result;
+};
+
+const runCompiled = (source: string): void => {
+  latestRunId += 1;
+  const runId = latestRunId;
+  runQueue = runQueue
+    .catch(() => undefined)
+    .then(async () => {
+      if (runId !== latestRunId) return;
+      await runCompiledNow(source);
+    });
 };
 
 onMounted(() => {
@@ -73,10 +93,12 @@ onMounted(() => {
   observer = new ResizeObserver(() => fitAddon.fit());
   observer.observe(hostEl.value);
 
-  if (props.compiled) void runCompiled(props.compiled);
+  if (props.compiled) runCompiled(props.compiled);
 });
 
 onBeforeUnmount(async () => {
+  disposed = true;
+  await runQueue.catch(() => undefined);
   observer?.disconnect();
   await teardownActive();
   term.value?.dispose();
@@ -86,7 +108,7 @@ watch(
   () => props.compiled,
   (next) => {
     if (next == null || next === "") return;
-    void runCompiled(next);
+    runCompiled(next);
   },
 );
 
