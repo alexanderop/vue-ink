@@ -14,9 +14,11 @@ description: >-
 ### 1. Build snapshots
 
 ```bash
-sh .agents/skills/meditate/scripts/snapshot.sh brain/ /tmp/brain-snapshot.md
-sh .agents/skills/meditate/scripts/snapshot.sh .agents/skills/ /tmp/skills-snapshot.md
+sh .claude/skills/meditate/scripts/snapshot.sh brain/ /tmp/brain-snapshot.md
+sh .claude/skills/meditate/scripts/snapshot.sh .claude/skills/ /tmp/skills-snapshot.md
 ```
+
+Both snapshot paths target `.claude/` — `.agents/skills/` is inert in this repo (see `brain/ops/agent-skill-paths.md`).
 
 Files are delimited with `=== path/to/file.md ===` headers. Also locate the auto-memory directory (`~/.claude/projects/<project>/memory/`).
 
@@ -30,9 +32,10 @@ Audits brain notes, CLAUDE.md, and auto-memory for staleness, redundancy, low-va
 
 ### 3. Reviewer (after auditor completes)
 
-Spawn one `general-purpose` subagent. See `references/agents.md` for the full prompt spec. Inputs: brain snapshot, skills snapshot, auditor report, `brain/principles.md`.
+Spawn one `general-purpose` subagent. See `references/agents.md` for the full prompt spec. Inputs: brain snapshot, skills snapshot, auditor report, `brain/principles/` (the principle dir; the snapshot already contains every principle).
 
 Combines three concerns in a single pass:
+
 - **Synthesis**: Proposes missing wikilinks, flags principle tensions, suggests clarifications.
 - **Distillation**: Identifies recurring patterns that reveal unstated principles. New principles must be (1) independent, (2) evidenced by 2+ notes, (3) actionable.
 - **Skill review**: Cross-references skills against brain principles. Finds contradictions, missed structural enforcement, redundant instructions.
@@ -55,7 +58,7 @@ Apply all changes directly. The user reviews the diff.
 - **Verbose notes**: Condense in place
 - **New connections**: Add `[[wikilinks]]`
 - **Tensions**: Reword to clarify boundaries
-- **New principles**: Only from the distillation section, only if genuinely independent. Write brain files and update `brain/principles.md`
+- **New principles**: Only from the distillation section, only if genuinely independent. Write brain files under `brain/principles/` and add an entry to `brain/index.md`'s Principles section
 - **Merge principles**: Look for principles that are subsets or specific applications of each other — merge the narrower into the broader
 - **CLAUDE.md issues**: Rewrite or delete
 - **Stale memories**: Delete or rewrite

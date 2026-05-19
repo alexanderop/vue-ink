@@ -31,4 +31,4 @@ Don't trust it; the tests are the source of truth.
 - If you see "injection not found" warnings during a vueink test run,
   treat it as a real bug not log noise — it can corrupt layout output.
 
-See [[create-context-pattern]] for the factory itself.
+See [[create-context-pattern]] for the factory itself, and `[[../composables/vueuse-patterns]]` (rule 5 — "Throw a named error when required context is missing" — describes the `requireContext` helper that wraps this pattern for composables).

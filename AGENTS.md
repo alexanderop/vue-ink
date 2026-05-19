@@ -14,7 +14,7 @@ Monorepo, pnpm workspaces. Node ≥ 22.
 - `packages/docs/` — `@vue-ink/docs`: VitePress documentation site.
 - `apps/playground/` — `@vue-ink/playground`: in-browser REPL (Monaco + `@vue/repl`) deployed to Vercel.
 - `examples/` — runnable example apps.
-- `learning/from-scratch.ts` — ~80-line zero-dep demo; pair with `brain/renderer/how-it-works.md`.
+- `learning/from-scratch.ts` — vue-ink in ~80 lines of plain Node + TS (ANSI escapes, frame-overwrite trick, toy layout step, raw-mode stdin). Run with `pnpm tsx learning/from-scratch.ts`. Pair with `brain/renderer/how-it-works.md`.
 - `brain/` — Obsidian vault, persistent memory (see below).
 - `repos/` — vendored read-only source trees for reference (see below).
 
@@ -45,12 +45,6 @@ Source-of-truth code for libraries we depend on. Treat as **read-only reference 
 - `repos/ink/` — https://github.com/vadimdemedes/ink.git @ master (squashed)
 - `repos/vueuse/` — https://github.com/vueuse/vueuse.git @ main (squashed)
 - `repos/repl/` — https://github.com/vuejs/repl.git @ main (squashed)
-
-## Learning references
-
-Minimal, zero-dependency demos that strip the framework down to its essence. Good for onboarding or sanity-checking the mental model. Pair with `brain/renderer/how-it-works.md`.
-
-- `learning/from-scratch.ts` — vue-ink in ~80 lines of plain Node + TS. Demonstrates ANSI escapes, the frame-overwrite trick, a toy layout step, and raw-mode stdin. Run with `pnpm tsx learning/from-scratch.ts`.
 
 # Brain
 

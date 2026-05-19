@@ -89,3 +89,4 @@ exposes `window.__playgroundStore` for the first half of the check.
 - [[playground-dts-bundle]] — how the bundle is produced
 - [[playground-dts-component-any]] — sibling regression (components
   flattened to `any`)
+- [[../testing/monaco-hover-e2e]] — the end-to-end regression test that proves the hidden dts survives across example switches

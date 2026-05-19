@@ -20,3 +20,8 @@ that's a regression. If you want to convert, the equivalent is
 `:padding="1"`. Most existing chat / counter / spinner examples use
 the trailing form because it reads cleaner next to plain HTML
 attributes.
+
+## Related
+
+- [[playground-dts-bundle]] — the dts bundle that introduces the strict numeric typing
+- [[playground-dts-component-any]] — why the bundle widens to `any` in some cases

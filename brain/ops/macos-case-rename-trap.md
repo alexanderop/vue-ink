@@ -15,3 +15,8 @@ git mv foo.ts.tmp Foo.ts
 Recurs whenever someone normalises a test or component to PascalCase
 (see [[../../memory/feedback_test_file_naming|test naming convention]]).
 Catches us roughly once per rename sweep.
+
+## Related
+
+- [[../testing/file-per-concept]] — test layout cleanup that triggers most of these renames
+- [[agent-hooks]] — the lint/format hooks that run on renamed files

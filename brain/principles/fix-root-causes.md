@@ -9,7 +9,7 @@ When debugging, never paper over symptoms. Trace every problem to its root cause
 - Reproduce first (if you can't reproduce it, you can't verify your fix)
 - Ask "why" until you hit bedrock
 - Resist the urge to add guards (adding a nil check to silence a crash is a symptom fix)
-- Check for the pattern, not just the instance (grep for the same pattern, fix all instances)
+- Check for the pattern, not just the instance (grep for the same pattern; when other instances surface outside the request, prefer surfacing them as separate todos over silently expanding the diff — see `[[surgical-changes]]`)
 - When stuck, instrument — don't guess (add logging, read the actual error)
 
 **Restart Bugs: Suspect State Before Code**

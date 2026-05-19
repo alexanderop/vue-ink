@@ -21,3 +21,7 @@ If we registered the handler unconditionally at render time, every
 non-interactive example would hold the loop open even when nothing ever
 called `waitUntilExit()`. Gating on first call keeps the
 fire-and-forget path lean.
+
+## Related
+
+- [[../porting/from-react-ink]] — the `waitUntilExit` row in the lifecycle gotchas table.

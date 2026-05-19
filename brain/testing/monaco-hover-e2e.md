@@ -32,7 +32,6 @@ await expect
     async () => {
       await page.mouse.move(0, 0); // leave the token
       await textToken.hover(); // re-trigger hover delay
-      await page.waitForTimeout(1_500);
       return hoverWidget.innerText().catch(() => "");
     },
     { timeout: 120_000, intervals: [1_000, 2_000, 3_000] },
@@ -43,6 +42,11 @@ await expect
 The widget appears almost immediately showing `"Loading…"`. The real
 text replaces it once the Volar worker responds — that's what the poll
 is waiting for.
+
+Do **not** add a `page.waitForTimeout(...)` inside the poll body: the
+`intervals` option already paces each iteration. An extra sleep stacks
+on top (interval + sleep, every retry), adding ~15–30 s to the typical
+pass path. The body should be cheap — bounce, hover, read.
 
 ## Volar cold-start is slow
 

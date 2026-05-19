@@ -16,3 +16,5 @@ Optimize for the intended, verifiable end state rather than preserving smooth in
 - Declare where temporary breakage is acceptable
 - Keep high-signal checks for actively touched areas while migrating
 - Require full static and runtime verification at plan completion
+
+**Boundary with `[[surgical-changes]]`:** outcome-oriented governs planned migrations with explicit phase boundaries; surgical-changes governs ad-hoc tasks. Don't invoke outcome-oriented to justify scope creep on a routine ticket.

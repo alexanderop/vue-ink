@@ -21,3 +21,4 @@ Ink uses the same split (`repos/ink/src/dom.ts`). The
 - [[yoga-vs-dom-indices]] — the "removeChildNode is safe" note there only
   meant "doesn't need yoga-index translation"; the lifetime concern here
   is orthogonal and equally load-bearing.
+- [[no-module-state-in-render]] — adjacent "lifetime mismatched with logical ownership" pattern at module scope.

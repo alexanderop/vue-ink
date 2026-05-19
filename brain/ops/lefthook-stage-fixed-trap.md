@@ -19,3 +19,7 @@ were dropped when lefthook re-staged.
 - If a commit lands looking thinner than expected after lint, check
   `git stash list` and the reflog before retrying — the dropped content
   is still in the working tree.
+
+## Related
+
+- [[../principles/serialize-shared-state-mutations]] — the user and the lint hook are concurrent writers of the index; `stage_fixed` is the canonical "two actors mutating shared state" case in this repo.

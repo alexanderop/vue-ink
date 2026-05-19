@@ -18,3 +18,7 @@ Refs are how Vue users wire DOM/element access — anything else would
 diverge from `<input ref="x"> ` and force callers to learn a new
 pattern. `expose` is the official escape hatch when the proxy needs to
 surface non-prop internals.
+
+## Related
+
+- [[layout-listeners]] — `useBoxMetrics` pairs the `$element` handle with the post-commit layout hook

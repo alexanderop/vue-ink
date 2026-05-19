@@ -18,3 +18,5 @@ Design operations so they converge to the correct state regardless of how many t
 3. Does re-execution converge to the same end state?
 
 If any answer is "it depends on what state was left behind," the operation needs a reconciliation step.
+
+**Boundary with `[[serialize-shared-state-mutations]]`:** idempotency handles repeated execution of a _single_ actor; serialization handles concurrent execution of _multiple_ actors. A system can need both.

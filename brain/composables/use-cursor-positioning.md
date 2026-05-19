@@ -54,3 +54,4 @@ Originally hit in `examples/chat/chat.vue` where a `useAnimation({ interval:
 
 - `packages/renderer/src/composables/useCursor/index.ts` — composable source
 - [[../porting/from-react-ink]] — `useCursor` row in the API mapping table
+- [[../renderer/wide-char-overlay-cleanup]] — adjacent cell-math gotcha for wide-character columns

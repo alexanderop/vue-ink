@@ -25,5 +25,7 @@ former is the only durable answer.
 
 ## Related
 
-- [[../principles/serialize-shared-state-mutations]] — same root cause,
-  different scope.
+- [[../principles/serialize-shared-state-mutations]] — a structural
+  variant: the actors here are sequential renderers in the same Node
+  process, not concurrent ones.
+- [[keyed-move-yoga-lifetime]] — adjacent "lifetime mismatched with logical ownership" pattern at the reconciler layer.
