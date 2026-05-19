@@ -56,6 +56,10 @@
 - [[testing/pnpm-filter-name]] — `pnpm --filter <name>` resolves package names, not folder paths
 - [[testing/property-tests]] — when fast-check pays back; bugs it found; recurring patterns
 
+## Reviews
+
+- [[reviews/vue-port-code-quality-2026-05-19]]
+
 ## Porting
 
 - [[porting/from-react-ink]] — idiom translations, lifecycle gotchas, common mistakes

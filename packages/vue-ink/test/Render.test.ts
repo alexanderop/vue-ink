@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, ref } from "vue";
 import stripAnsi from "strip-ansi";
+import ansiEscapes from "ansi-escapes";
 import {
   Box,
   Text,
@@ -561,6 +562,69 @@ describe("interactive mode detection", () => {
         expect(stdout.frames.length).toBe(1);
       },
     );
+  });
+});
+
+describe("render(): full-height terminal regressions", () => {
+  const FullHeight = (rows: number, middle = "middle") =>
+    defineComponent({
+      setup: () => () =>
+        h(Box, { height: rows, flexDirection: "column" }, () => [
+          h(Text, null, () => "#442 top"),
+          h(Box, { flexGrow: 1 }, () => h(Text, null, () => middle)),
+          h(Text, null, () => "#442 bottom"),
+        ]),
+    });
+
+  it("does not clear the terminal for an initial full-height TTY frame", async () => {
+    const stdout = createCaptureStream(20, { isTTY: true, rows: 5 });
+    const instance = render(FullHeight(5), { stdout, interactive: true, debug: false });
+    await flush();
+
+    const output = stdout.frames.join("");
+    instance.unmount();
+
+    expect(output).not.toContain(ansiEscapes.clearTerminal);
+    expect(stripAnsi(output)).toContain("#442 bottom");
+  });
+
+  it("does not clear the terminal for non-TTY full-height rerenders", async () => {
+    const stdout = createCaptureStream(20, { rows: 5 });
+    const frame = ref(0);
+    const App = defineComponent({
+      setup: () => () => h(FullHeight(5, `frame ${frame.value}`)),
+    });
+
+    const instance = render(App, { stdout });
+    await flush();
+    frame.value = 1;
+    await flush();
+    frame.value = 2;
+    await flush();
+    instance.unmount();
+
+    const output = stdout.frames.join("");
+    expect(output).not.toContain(ansiEscapes.clearTerminal);
+    expect(stripAnsi(output)).toContain("frame 2");
+  });
+
+  it("rerenders after a viewport shrink into overflow without dropping content", async () => {
+    const stdout = createCaptureStream(20, { isTTY: true, rows: 6 });
+    const App = FullHeight(6, "#450 middle");
+
+    const instance = render(App, { stdout, interactive: true, debug: false });
+    await flush();
+    stdout.frames.length = 0;
+    stdout.rows = 5;
+    stdout.emit("resize");
+    await flush();
+
+    const output = stdout.frames.join("");
+    instance.unmount();
+
+    expect(output).not.toContain(ansiEscapes.clearTerminal);
+    expect(stripAnsi(output)).toContain("#442 top");
+    expect(stripAnsi(output)).toContain("#442 bottom");
   });
 });
 

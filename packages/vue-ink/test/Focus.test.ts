@@ -57,6 +57,10 @@ const TestApp = (props: TestProps = {}) =>
 		},
 	});
 
+const waitForEscDisambiguation = async (): Promise<void> => {
+	await new Promise((resolve) => setTimeout(resolve, 150));
+};
+
 describe('focus', () => {
 	it('does not auto-focus when autoFocus is off', async () => {
 		const { lastFrame, waitUntilFlush } = render(TestApp());
@@ -78,6 +82,19 @@ describe('focus', () => {
 		stdin.write('\t');
 		await waitUntilFlush();
 		expect(lastFrame()).toBe(['First ✔', 'Second', 'Third'].join('\n'));
+	});
+
+	it('unfocuses the active component on Esc', async () => {
+		const { lastFrame, stdin, waitUntilFlush } = render(
+			TestApp({ autoFocus: true }),
+		);
+		await waitUntilFlush();
+		expect(lastFrame()).toBe(['First ✔', 'Second', 'Third'].join('\n'));
+
+		stdin.write('\u001B');
+		await waitForEscDisambiguation();
+		await waitUntilFlush();
+		expect(lastFrame()).toBe(['First', 'Second', 'Third'].join('\n'));
 	});
 
 	it('advances to next component on Tab', async () => {
@@ -128,6 +145,17 @@ describe('focus', () => {
 		expect(lastFrame()).toBe(['First ✔', 'Second', 'Third'].join('\n'));
 	});
 
+	it('wraps to last component when Shift+Tab from first', async () => {
+		const { lastFrame, stdin, waitUntilFlush } = render(
+			TestApp({ autoFocus: true }),
+		);
+		await waitUntilFlush();
+
+		stdin.write('[Z');
+		await waitUntilFlush();
+		expect(lastFrame()).toBe(['First', 'Second', 'Third ✔'].join('\n'));
+	});
+
 	it('skips disabled component on Shift+Tab', async () => {
 		const { lastFrame, stdin, waitUntilFlush } = render(
 			TestApp({ autoFocus: true, disableSecond: true }),
@@ -140,6 +168,17 @@ describe('focus', () => {
 		stdin.write('[Z'); // Shift+Tab → (skip Second) → First
 		await waitUntilFlush();
 		expect(lastFrame()).toBe(['First ✔', 'Second', 'Third'].join('\n'));
+	});
+
+	it('skips disabled components when wrapping backward from the front', async () => {
+		const { lastFrame, stdin, waitUntilFlush } = render(
+			TestApp({ autoFocus: true, disableThird: true }),
+		);
+		await waitUntilFlush();
+
+		stdin.write('[Z');
+		await waitUntilFlush();
+		expect(lastFrame()).toBe(['First', 'Second ✔', 'Third'].join('\n'));
 	});
 
 	it('exposes activeId from useFocusManager', async () => {
@@ -157,5 +196,29 @@ describe('focus', () => {
 		await waitUntilFlush();
 		unmount();
 		expect(observed.at(-1)).toBe('alpha');
+	});
+
+	it('activeId resets to undefined on Esc', async () => {
+		const observed: Array<string | undefined> = [];
+		const Probe = defineComponent({
+			setup() {
+				useFocus({ autoFocus: true, id: 'alpha' });
+				const { activeId } = useFocusManager();
+				watch(activeId, (id) => observed.push(id), { immediate: true });
+				return () => h(Text, null, () => activeId.value ?? 'none');
+			},
+		});
+
+		const { lastFrame, stdin, waitUntilFlush, unmount } = render(Probe);
+		await waitUntilFlush();
+		expect(lastFrame()).toBe('alpha');
+
+		stdin.write('\u001B');
+		await waitForEscDisambiguation();
+		await waitUntilFlush();
+
+		expect(lastFrame()).toBe('none');
+		expect(observed).toContain(undefined);
+		unmount();
 	});
 });

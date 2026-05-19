@@ -94,6 +94,10 @@ export const createFocusManager = (emitter: EventEmitter): FocusManager => {
 
 	const onInput = (_input: string, key: Key): void => {
 		if (!isFocusEnabled.value) return;
+		if (key.escape) {
+			activeId.value = undefined;
+			return;
+		}
 		if (!key.tab) return;
 		if (key.shift) focusPrevious();
 		else focusNext();

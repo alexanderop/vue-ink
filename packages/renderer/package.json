@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@vue-ink/core": "workspace:^",
+    "@vue/runtime-core": "catalog:",
     "ansi-escapes": "^7.3.0",
     "ws": "^8.18.0",
     "yoga-layout": "catalog:"
@@ -61,7 +62,6 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/ws": "^8.5.13",
-    "@vue/runtime-core": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "vue": "catalog:"

@@ -12,6 +12,7 @@ export class Stdout extends EventEmitter {
 	readonly frames: string[] = [];
 	#lastFrame: string | undefined;
 	columns = 100;
+	rows = 24;
 	isTTY = false;
 
 	write = (frame: string): void => {

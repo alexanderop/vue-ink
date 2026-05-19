@@ -447,7 +447,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
   // these are read elsewhere they're always the real resolve/reject — the
   // no-op assertions here just satisfy the type checker before assignment.
   let exitResolve: (value: unknown) => void = noop;
-  let exitReject: (err: Error) => void = noop;
+  let exitReject: (err: unknown) => void = noop;
   const exitPromise = new Promise<unknown>((resolve, reject) => {
     exitResolve = resolve;
     exitReject = reject;
@@ -473,6 +473,13 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
   // harmless no-op.
   // eslint-disable-next-line prefer-const -- forward declaration; assigned below
   let instance: Instance | undefined;
+
+  const settleExitWithError = (err: unknown): void => {
+    // `unmount()` later resolves the same promise for normal teardown, but
+    // promise settlement is first-wins, so rejecting here preserves the render
+    // failure for callers awaiting waitUntilExit().
+    exitReject(err);
+  };
 
   const inputManager = createInputManager({
     stdin,
@@ -902,6 +909,7 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
     eraseCurrentFrame();
     const stack = err instanceof Error ? (err.stack ?? err.message) : String(err);
     stderr.write(`vue-ink render error (${info}):\n${stack}\n`);
+    settleExitWithError(err);
     unmount();
   };
 
@@ -1080,28 +1088,6 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
     }
   }
 
-  app.mount(rootNode);
-
-  // Resize handling is independent of painting mode: composables like
-  // `useBoxMetrics` rely on the renderer running `renderTree` (and firing
-  // layout listeners) on every column change. We always attach the
-  // listener — non-TTY streams (CI, testing-library's fake stdout) simply
-  // don't emit `resize` unless a test fires it manually.
-  writeStream.on("resize", onResize);
-
-  if (exitOnCtrlC) {
-    process.on("SIGINT", onSignal);
-    process.on("SIGTERM", onSignal);
-  }
-
-  // Mount-time mutations queue a post-flush render which Vue drains inside
-  // `app.mount`; in that case `hasCommitted` is already set and we skip the
-  // explicit paint to avoid a duplicate identical frame. Components that
-  // render to a tree with no host mutations (rare) won't have triggered
-  // `scheduleRender`, so the fallback paint here guarantees the first frame
-  // lands before `render()` returns.
-  if (!hasCommitted) renderImmediate();
-
   const rerender = (newComponent: Component): void => {
     // Component identity is changing — any prior `<Static>` scrollback
     // state is no longer a valid diff anchor for the new tree. Resetting
@@ -1170,6 +1156,31 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
     clear: eraseCurrentFrame,
     cleanup: () => unmount(),
   };
+
+  app.mount(rootNode);
+
+  if (unmounted) return instance;
+
+  // Resize handling is independent of painting mode: composables like
+  // `useBoxMetrics` rely on the renderer running `renderTree` (and firing
+  // layout listeners) on every column change. We always attach the
+  // listener — non-TTY streams (CI, testing-library's fake stdout) simply
+  // don't emit `resize` unless a test fires it manually.
+  writeStream.on("resize", onResize);
+
+  if (exitOnCtrlC) {
+    process.on("SIGINT", onSignal);
+    process.on("SIGTERM", onSignal);
+  }
+
+  // Mount-time mutations queue a post-flush render which Vue drains inside
+  // `app.mount`; in that case `hasCommitted` is already set and we skip the
+  // explicit paint to avoid a duplicate identical frame. Components that
+  // render to a tree with no host mutations (rare) won't have triggered
+  // `scheduleRender`, so the fallback paint here guarantees the first frame
+  // lands before `render()` returns.
+  if (!hasCommitted) renderImmediate();
+
   instances.set(writeStream, instance);
   activeInstances.add(instance);
   return instance;

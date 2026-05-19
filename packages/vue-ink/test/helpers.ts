@@ -9,7 +9,7 @@ import { render as tlRender, Stdout } from "@vue-ink/testing-library";
 
 export const createCaptureStream = (
   columns = 80,
-  options: { isTTY?: boolean } = {},
+  options: { isTTY?: boolean; rows?: number } = {},
 ): NodeJS.WriteStream & {
   frames: string[];
 } => {
@@ -27,11 +27,13 @@ export const createCaptureStream = (
     },
   }) as Writable & {
     columns: number;
+    rows: number;
     isTTY: boolean;
     frames: string[];
   };
 
   stream.columns = columns;
+  stream.rows = options.rows ?? 24;
   stream.isTTY = options.isTTY ?? false;
   stream.frames = frames;
   return stream as unknown as NodeJS.WriteStream & { frames: string[] };

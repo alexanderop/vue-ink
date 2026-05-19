@@ -34,6 +34,17 @@ describe('useWindowSize', () => {
 		unmount();
 	});
 
+	it('falls back to positive defaults when stdout dimensions are zero', () => {
+		const stdout = createFakeStdout(0);
+		stdout.rows = 0;
+		const { result, unmount } = withSetup(() => useWindowSize(), {
+			stdout: fakeStdoutContext(stdout),
+		});
+		expect(result.columns.value).toBe(80);
+		expect(result.rows.value).toBe(24);
+		unmount();
+	});
+
 	it('updates reactively on stdout `resize`', () => {
 		const stdout = createFakeStdout(20);
 		stdout.rows = 10;

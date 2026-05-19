@@ -29,6 +29,22 @@ describe('useWindowSize behavior', () => {
 		unmount();
 	});
 
+	it('initial `rows` reflects the capture stream\'s rows', async () => {
+		const Component = defineComponent({
+			setup() {
+				const { rows } = useWindowSize();
+				return () => h(Text, null, () => `rows:${rows.value}`);
+			},
+		});
+
+		const { lastFrame, stdout, waitUntilFlush, unmount } = render(Component);
+		stdout.rows = 17;
+		stdout.emit('resize');
+		await waitUntilFlush();
+		expect(latest(lastFrame)).toBe('rows:17');
+		unmount();
+	});
+
 	it('updates reactively when stdout emits `resize` after a column change', async () => {
 		const Component = defineComponent({
 			setup() {
@@ -51,6 +67,25 @@ describe('useWindowSize behavior', () => {
 		stdout.emit('resize');
 		await waitUntilFlush();
 		expect(latest(lastFrame)).toBe('cols:132');
+
+		unmount();
+	});
+
+	it('updates reactively when stdout emits `resize` after a row change', async () => {
+		const Component = defineComponent({
+			setup() {
+				const { rows } = useWindowSize();
+				return () => h(Text, null, () => `rows:${rows.value}`);
+			},
+		});
+
+		const { lastFrame, stdout, waitUntilFlush, unmount } = render(Component);
+		await waitUntilFlush();
+
+		stdout.rows = 30;
+		stdout.emit('resize');
+		await waitUntilFlush();
+		expect(latest(lastFrame)).toBe('rows:30');
 
 		unmount();
 	});
