@@ -38,6 +38,7 @@
 - [[renderer/host-portability]] — guards that keep `render()` callable from non-Node hosts (browser playground)
 - [[renderer/wide-char-overlay-cleanup]] — overlay frame clears half of a wide char left behind by a previous frame
 - [[renderer/debug-mode-write-replay]] — `useStdout/useStderr.write()` in `debug: true` must be a single combined write; also fixed mount-time double-paint
+- [[renderer/text-outside-text-silently-dropped]] — raw strings inside `<Box>` produce empty output instead of ink's invariant error
 
 ## Components
 
@@ -47,6 +48,7 @@
 ## Composables
 
 - [[composables/vueuse-patterns]]
+- [[composables/use-animation-divergences]] — `Date.now()` non-monotonicity and pause-zeroes-state divergences from ink's `useAnimation`
 
 ## Testing
 
@@ -55,6 +57,10 @@
 - [[testing/hoist-pure-helpers]] — top-of-file helpers Claude keeps reinventing inside test bodies
 - [[testing/pnpm-filter-name]] — `pnpm --filter <name>` resolves package names, not folder paths
 - [[testing/property-tests]] — when fast-check pays back; bugs it found; recurring patterns
+- [[testing/capture-composable-from-setup]] — port idiom for tests that need a composable's imperative API alongside a rendered tree
+- [[testing/kitty-parser-tests-live-in-parsekeypress]] — kitty CSI-u parser scenarios belong in `ParseKeypress.test.ts`, not `InputParser.test.ts`
+- [[testing/monaco-hover-e2e]] — driving Monaco's Volar hover from Playwright (widget selector, warmup, mouse bounce)
+- [[testing/vite-preview-ipv6]] — Vite 7 preview binds to `::1`; Playwright `baseURL` must use `localhost`, not `127.0.0.1`
 
 ## Reviews
 
@@ -78,6 +84,7 @@
 - [[apps/playground-dts-bundle]] — bundling vue-ink type defs for Monaco IntelliSense
 - [[apps/playground-dts-component-any]] — generated `.d.ts` widens component prop types to `any`
 - [[apps/playground-monaco-types]] — wiring types into Monaco for IntelliSense
+- [[apps/playground-setfiles-wipes-hidden-files]] — `store.setFiles()` is a wholesale replace; mutate `File.code` instead
 - [[apps/playground-pnpm-polyfill-shims]] — `vite-plugin-node-polyfills` pin and shim layout
 - [[apps/playground-repl-theming]] — REPL theme integration
 

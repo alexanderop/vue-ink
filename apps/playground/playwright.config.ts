@@ -1,7 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 4173;
-const BASE_URL = `http://127.0.0.1:${PORT}/`;
+// Use `localhost` not `127.0.0.1`: Vite 7's preview binds to `::1` (IPv6) by
+// default, so an IPv4-only base URL never connects on macOS and the webServer
+// wait times out. `localhost` resolves to either family.
+const BASE_URL = `http://localhost:${PORT}/`;
 
 export default defineConfig({
   testDir: "./tests",

@@ -8,6 +8,7 @@ export class Stdout extends EventEmitter {
     frames = [];
     #lastFrame;
     columns = 100;
+    rows = 24;
     isTTY = false;
     write = (frame) => {
         const trimmed = trimFrame(frame);

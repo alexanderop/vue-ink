@@ -74,10 +74,6 @@ const store = useStore(
   location.hash,
 );
 
-if (!location.hash) {
-  store.setFiles({ "App.vue": DEFAULT_APP }, "App.vue");
-}
-
 // Feed the bundled `vue-ink` types to Volar as a hidden workspace file. The
 // REPL's Monaco worker syncs every entry in `store.files` into the language
 // service, so the `declare module` blocks below give the editor real
@@ -88,6 +84,12 @@ if (!location.hash) {
 // Two module aliases because user code may write `from 'vue-ink'` (nicer
 // for docs/blog posts) or `from 'vueink'` (the published npm name) —
 // runner.ts:99 rewrites both at runtime.
+//
+// Order matters: `setFiles` is async (it awaits `compileFile` before
+// reassigning `store.files`), so if we call it before `addFile` the hidden
+// dts gets clobbered by the eventual `store.files = …` reassignment. Use
+// `addFile` for the default code too — it mutates `store.files` synchronously
+// per-key and never wipes the rest of the map.
 const VUE_INK_TYPES_FILENAME = "vue-ink.d.ts";
 const wrappedDts = [
   `declare module 'vue-ink' {`,
@@ -99,17 +101,33 @@ const wrappedDts = [
 ].join("\n");
 store.addFile(new File(VUE_INK_TYPES_FILENAME, wrappedDts, /* hidden */ true));
 
-// Examples come from the monorepo-wide `/examples/` directory via Vite's glob
-// import. Selecting one replaces the workspace's `App.vue` with that example's
-// source — the rest of `store.files` (the hidden `vue-ink.d.ts`, etc.) stays
-// intact. We pin the dropdown's value to a sentinel so re-selecting the same
-// example after edits still resets the file.
+if (!location.hash) {
+  store.addFile(new File(store.mainFile, DEFAULT_APP));
+}
+
+// Expose the repl store for Playwright e2e tests. Always on — the playground
+// is a dev tool, the store has no secrets, and the alternative (gating on a
+// query flag) races with App.vue's setup running before the test can set it.
+if (typeof window !== "undefined") {
+  (window as { __playgroundStore?: typeof store }).__playgroundStore = store;
+}
+
+// Mutate the existing `File.code` instead of calling `store.setFiles()`:
+// `setFiles` reassigns `store.files` wholesale, which wipes hidden workspace
+// files (the bundled `vue-ink.d.ts` that powers Monaco IntelliSense).
 const SELECT_PLACEHOLDER = "";
 const selectedExample = ref<string>(SELECT_PLACEHOLDER);
 const loadExample = (name: string) => {
   const example = examples.find((entry) => entry.name === name);
   if (!example) return;
-  store.setFiles({ "App.vue": example.code }, "App.vue");
+  const target = store.mainFile;
+  const file = store.files[target];
+  if (file) {
+    file.code = example.code;
+  } else {
+    store.addFile(new File(target, example.code));
+  }
+  store.setActive(target);
   selectedExample.value = SELECT_PLACEHOLDER;
 };
 

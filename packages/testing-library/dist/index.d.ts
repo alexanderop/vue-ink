@@ -4,6 +4,7 @@ export declare class Stdout extends EventEmitter {
     #private;
     readonly frames: string[];
     columns: number;
+    rows: number;
     isTTY: boolean;
     write: (frame: string) => void;
     lastFrame: () => string | undefined;

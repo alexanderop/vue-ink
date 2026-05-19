@@ -35,6 +35,63 @@ test.describe("playground", () => {
     expect(consoleErrors, "no unexpected console errors").toEqual([]);
   });
 
+  test("Monaco shows vue-ink types on hover after switching examples", async ({ page }) => {
+    // Volar warmup on a cold worker can exceed the default 30s test budget.
+    test.setTimeout(180_000);
+
+    await page.goto("/");
+
+    await expect(page.locator(".monaco-editor").first()).toBeVisible({
+      timeout: 30_000,
+    });
+
+    await page.getByRole("combobox", { name: "Load example" }).selectOption("counter");
+
+    await expect
+      .poll(() => page.locator(".monaco-editor .view-lines").first().innerText(), {
+        timeout: 10_000,
+      })
+      .toContain("vueink");
+
+    // vue-ink.d.ts is a hidden file; verify the store still carries it after loadExample.
+    const fileKeys = await page.evaluate(() =>
+      Object.keys(
+        (window as unknown as { __playgroundStore?: { files: Record<string, unknown> } })
+          .__playgroundStore?.files ?? {},
+      ),
+    );
+    expect(fileKeys, "hidden vue-ink.d.ts must survive loadExample").toContain("vue-ink.d.ts");
+
+    // Monaco renders each token as its own span; the first exact-match "Text"
+    // span is the import identifier on line 3 of the counter example.
+    const editor = page.locator(".monaco-editor").first();
+    await editor.click();
+    const textToken = editor
+      .locator(".view-lines span")
+      .filter({ hasText: /^Text$/ })
+      .first();
+    await expect(textToken).toBeVisible({ timeout: 10_000 });
+
+    // Volar emits diagnostics before it can answer hover requests reliably.
+    // Give it a head start so the first hover poll lands on a warm worker.
+    await page.waitForTimeout(5_000);
+
+    const hoverWidget = page.locator('[widgetid="editor.contrib.resizableContentHoverWidget"]');
+
+    await expect
+      .poll(
+        async () => {
+          // Bounce the mouse off the editor so re-entering retriggers the
+          // hover delay on each poll iteration.
+          await page.mouse.move(0, 0);
+          await textToken.hover();
+          return hoverWidget.innerText().catch(() => "");
+        },
+        { timeout: 120_000, intervals: [1_000, 2_000, 3_000] },
+      )
+      .toMatch(/DefineComponent|TextProps/);
+  });
+
   test("theme toggle persists across reload", async ({ page }) => {
     await page.goto("/");
     const toggle = page.getByRole("button", { name: /Switch to (light|dark) mode/ });
