@@ -1,5 +1,5 @@
-import { computed, inject, type ComputedRef } from 'vue';
-import { ACCESSIBILITY_CONTEXT_KEY } from '../accessibility-context.ts';
+import { computed, type ComputedRef } from "vue";
+import { useAccessibilityContext } from "../accessibility-context.ts";
 
 /**
  * Reactive view of the renderer's screen-reader flag. Returns a
@@ -8,6 +8,6 @@ import { ACCESSIBILITY_CONTEXT_KEY } from '../accessibility-context.ts';
  * vue-ink renderer — currently only happens in unit tests).
  */
 export const useScreenReader = (): ComputedRef<boolean> => {
-	const ctx = inject(ACCESSIBILITY_CONTEXT_KEY, null);
-	return computed(() => ctx?.isScreenReaderEnabled.value ?? false);
+  const ctx = useAccessibilityContext();
+  return computed(() => ctx?.isScreenReaderEnabled.value ?? false);
 };

@@ -42,6 +42,7 @@
 ## Components
 
 - [[components/static-generics]] — why `<Static>` keeps `items: unknown[]` instead of going generic
+- [[components/create-context-pattern]] — `[useFoo, provideFoo] = createContext<T>(name)` ergonomics; what it buys and what it doesn't
 
 ## Composables
 
