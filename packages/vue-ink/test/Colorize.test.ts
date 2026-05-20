@@ -34,6 +34,11 @@ describe('colorize', () => {
 		expect(out).toBe(chalk.ansi256(196)('hi'));
 	});
 
+	it('applies an ansi256 foreground color with optional inner whitespace', () => {
+		const out = colorize('hi', 'ansi256(196 )', 'foreground');
+		expect(out).toBe(chalk.ansi256(196)('hi'));
+	});
+
 	it('applies an ansi256 background color', () => {
 		const out = colorize('hi', 'ansi256(21)', 'background');
 		expect(out).toBe(chalk.bgAnsi256(21)('hi'));
@@ -41,10 +46,22 @@ describe('colorize', () => {
 
 	it('returns the string unchanged for a malformed ansi256 spec', () => {
 		expect(colorize('hi', 'ansi256(notanumber)', 'foreground')).toBe('hi');
+		expect(colorize('hi', 'xansi256(196)', 'foreground')).toBe('hi');
+		expect(colorize('hi', 'ansi256(196)x', 'foreground')).toBe('hi');
 	});
 
 	it('applies an rgb() foreground color', () => {
 		const out = colorize('hi', 'rgb(255, 128, 0)', 'foreground');
+		expect(out).toBe(chalk.rgb(255, 128, 0)('hi'));
+	});
+
+	it('applies an rgb() foreground color without spaces', () => {
+		const out = colorize('hi', 'rgb(255,128,0)', 'foreground');
+		expect(out).toBe(chalk.rgb(255, 128, 0)('hi'));
+	});
+
+	it('applies an rgb() foreground color with optional trailing inner whitespace', () => {
+		const out = colorize('hi', 'rgb(255,128,0 )', 'foreground');
 		expect(out).toBe(chalk.rgb(255, 128, 0)('hi'));
 	});
 
@@ -55,6 +72,8 @@ describe('colorize', () => {
 
 	it('returns the string unchanged for a malformed rgb() spec', () => {
 		expect(colorize('hi', 'rgb(no, way, jose)', 'foreground')).toBe('hi');
+		expect(colorize('hi', 'xrgb(255,128,0)', 'foreground')).toBe('hi');
+		expect(colorize('hi', 'rgb(255,128,0)x', 'foreground')).toBe('hi');
 	});
 
 	it('returns the string unchanged for an unrecognised color string', () => {

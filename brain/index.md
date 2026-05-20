@@ -75,6 +75,7 @@
 - [[testing/vite-preview-ipv6]] — Vite 7 preview binds to `::1`; Playwright `baseURL` must use `localhost`, not `127.0.0.1`
 - [[testing/vitest-bench-no-lifecycle-hooks]] — `beforeEach`/`afterEach` are no-ops in `bench(...)`; silently produces wrong numbers
 - [[testing/vitest-parallelism]] — Vitest 4 parallelism knobs and migration gotcha
+- [[testing/mutation-testing]] — Stryker + pnpm workspace aliases; avoid false no-coverage via original symlinked packages
 
 ## Reviews
 

@@ -2,6 +2,8 @@ node_modules
 build
 dist
 coverage
+reports/
+.stryker-tmp/
 *.log
 .DS_Store
 .env

@@ -11,6 +11,18 @@ const asciiText = fc.string({ unit: asciiChar, maxLength: 120 });
 const maxWidth = fc.integer({ min: 1, max: 40 });
 
 describe("wrapText — properties", () => {
+  it("undefined wrap type leaves text unchanged", () => {
+    expect(wrapText("abcdefghij", 3, undefined)).toBe("abcdefghij");
+  });
+
+  it("wrap preserves whitespace-only wrap lines", () => {
+    expect(wrapText("hello  world", 5, "wrap")).toBe("hello\n  \nworld");
+  });
+
+  it("hard wrap breaks long words even when word wrapping is disabled", () => {
+    expect(wrapText("abc defghij", 5, "hard")).toBe("abc d\nefghi\nj");
+  });
+
   it("wrap: every output line fits within maxWidth", () => {
     fc.assert(
       fc.property(asciiText, maxWidth, (text, width) => {

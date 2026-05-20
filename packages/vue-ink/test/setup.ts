@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { afterEach, vi } from 'vitest';
 
+delete process.env['NO_COLOR'];
 process.env['FORCE_COLOR'] = 'true';
 
 // CI runners (GitHub Actions etc.) set `CI=true`, which makes `isCiEnv()` in

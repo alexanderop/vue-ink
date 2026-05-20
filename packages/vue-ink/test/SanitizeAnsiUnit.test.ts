@@ -13,8 +13,22 @@ describe('sanitizeAnsi (unit)', () => {
 		expect(sanitizeAnsi('\x1b[31mred\x1b[39m')).toBe('\x1b[31mred\x1b[39m');
 	});
 
+	it('strips CSI SGR-looking sequences with invalid parameter bytes', () => {
+		expect(sanitizeAnsi('a\x1b[31?mb')).toBe('ab');
+		expect(sanitizeAnsi('a\x1b[?31mb')).toBe('ab');
+	});
+
+	it('preserves OSC control strings', () => {
+		const osc = '\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\';
+		expect(sanitizeAnsi(osc)).toBe(osc);
+	});
+
 	it('strips lone bell, backspace, and other C0 controls', () => {
 		expect(sanitizeAnsi('a\x07b\x08c\x01d')).toBe('abcd');
+	});
+
+	it('preserves tab and newline while stripping other C0 controls', () => {
+		expect(sanitizeAnsi('a\tb\nc\x07d')).toBe('a\tb\ncd');
 	});
 
 	it('strips DEL (0x7F)', () => {
@@ -54,10 +68,6 @@ describe('sanitizeAnsi (unit)', () => {
 	it('handles CSI sequences with intermediate bytes', () => {
 		// ESC [ 1 ! m — has an intermediate byte. Final byte is 'm', but the
 		// intermediate path is exercised by the state machine.
-		const out = sanitizeAnsi('a\x1b[1 mb');
-		// either preserved as-is (with the intermediate) or stripped — we just
-		// want to drive that branch without crashing
-		expect(out).toContain('a');
-		expect(out).toContain('b');
+		expect(sanitizeAnsi('a\x1b[1 mb')).toBe('ab');
 	});
 });

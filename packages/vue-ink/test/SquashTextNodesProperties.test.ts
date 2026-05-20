@@ -31,6 +31,14 @@ const buildInkText = (fragments: readonly string[]): DOMElement => {
   return node;
 };
 
+const buildVirtualText = (value: string): DOMElement => {
+  const node = createNode("ink-virtual-text");
+  if (value.length > 0) {
+    appendChildNode(node, createTextNode(value));
+  }
+  return node;
+};
+
 describe("squashTextNodes — properties", () => {
   it("stripAnsi(squash(node)) === concat of stripAnsi(children)", () => {
     fc.assert(
@@ -75,5 +83,50 @@ describe("squashTextNodes — properties", () => {
       }),
       { numRuns: 200 },
     );
+  });
+
+  it("empty text placeholders do not count toward transform indexes", () => {
+    const outer = createNode("ink-text");
+    const transformed = buildVirtualText("child");
+    transformed.internal_transform = (text, index) => `${index}:${text}`;
+
+    appendChildNode(outer, createTextNode(""));
+    appendChildNode(outer, transformed);
+
+    expect(squashTextNodes(outer)).toBe("0:child");
+  });
+
+  it("plain text children count toward transform indexes", () => {
+    const outer = createNode("ink-text");
+    const transformed = buildVirtualText("child");
+    transformed.internal_transform = (text, index) => `${index}:${text}`;
+
+    appendChildNode(outer, createTextNode("plain"));
+    appendChildNode(outer, transformed);
+
+    expect(squashTextNodes(outer)).toBe("plain1:child");
+  });
+
+  it("empty nested text nodes produce no output but still count as renderable", () => {
+    const outer = createNode("ink-text");
+    const empty = buildVirtualText("");
+    const transformed = buildVirtualText("child");
+
+    empty.internal_transform = (text, index) => `empty-${index}:${text}`;
+    transformed.internal_transform = (text, index) => `${index}:${text}`;
+
+    appendChildNode(outer, empty);
+    appendChildNode(outer, transformed);
+
+    expect(squashTextNodes(outer)).toBe("1:child");
+  });
+
+  it("ink-text children are flattened like virtual text children", () => {
+    const outer = createNode("ink-virtual-text");
+    const inner = createNode("ink-text");
+    appendChildNode(inner, createTextNode("child"));
+    appendChildNode(outer, inner);
+
+    expect(squashTextNodes(outer)).toBe("child");
   });
 });
