@@ -46,6 +46,7 @@
 - [[renderer/keyed-move-yoga-lifetime]] — keyed v-for moves vs Yoga node lifetime in the reconciler
 - [[renderer/no-module-state-in-render]] — module-scope counters/state leak across renderers (still-live: `focusIdCounter`)
 - [[renderer/wait-until-exit-beforeexit]] — Node-exit subtlety; `beforeExit` vs `exit` ordering for `waitUntilExit`
+- [[renderer/resize-reflow-erase]] — width-shrink resize needs a wrap-aware erase; ink's `log.clear()` is incomplete
 
 ## Components
 

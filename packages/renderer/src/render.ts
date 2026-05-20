@@ -2,6 +2,7 @@ import process from "node:process";
 import { formatWithOptions } from "node:util";
 import Yoga from "yoga-layout";
 import ansiEscapes from "ansi-escapes";
+import stringWidth from "string-width";
 import { h, nextTick as vueNextTick, ref, shallowRef, watch, type Component } from "vue";
 import { createApp } from "./renderer.ts";
 import {
@@ -319,6 +320,16 @@ const subscribeConsole = (sub: ConsoleSubscriber): (() => void) => {
 // synchronously before the surrounding code reads them.
 /* v8 ignore next */
 const noop = (): void => {};
+
+// Each logical line wraps to `ceil(stringWidth / cols)` visual rows; an
+// empty line still consumes one row, hence the floor of 1.
+const countReflowedRows = (lines: readonly string[], cols: number): number => {
+  let total = 0;
+  for (const line of lines) {
+    total += Math.max(1, Math.ceil(stringWidth(line) / cols));
+  }
+  return total;
+};
 
 const renderTree = (
   rootNode: DOMElement,
@@ -913,11 +924,21 @@ const render = (component: Component, options: RenderOptions = {}): Instance => 
     unmount();
   };
 
+  // Tracks the prior width so a shrink can be detected against the new
+  // `writeStream.columns` reading inside `onResize`.
+  let lastTerminalWidth = getTerminalWidth();
   const onResize = (): void => {
-    // Width changed — previous line count can't be trusted for erase math
-    // and the new layout may differ even from identical state. Reset the
-    // cursor snapshot too so `buildReturnToBottom` doesn't try to walk
-    // against coordinates that belong to the pre-resize layout.
+    const currentWidth = getTerminalWidth();
+    if (useTTYFrame && currentWidth < lastTerminalWidth && lastLineCount > 0) {
+      // Shrink reflows the prior frame; `lastLineCount` undercounts the
+      // visual rows now occupied, so erase by reflowed row count instead.
+      // See brain/renderer/resize-reflow-erase.md.
+      const reflowedRowCount = countReflowedRows(lastOutputLines, currentWidth);
+      writeStream.write(ansiEscapes.eraseLines(reflowedRowCount + 1));
+    }
+    lastTerminalWidth = currentWidth;
+    // Pre-resize cursor + line-count snapshots reference a layout that no
+    // longer exists; clear them before `renderImmediate` repaints.
     lastOutput = "";
     lastOutputLines = [];
     lastLineCount = 0;

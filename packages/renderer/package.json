@@ -56,6 +56,7 @@
     "@vue-ink/core": "workspace:^",
     "@vue/runtime-core": "catalog:",
     "ansi-escapes": "^7.3.0",
+    "string-width": "^8.2.0",
     "ws": "^8.18.0",
     "yoga-layout": "catalog:"
   },
