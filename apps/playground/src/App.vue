@@ -128,7 +128,6 @@ const loadExample = (name: string) => {
     store.addFile(new File(target, example.code));
   }
   store.setActive(target);
-  selectedExample.value = SELECT_PLACEHOLDER;
 };
 
 // Persist edits to the URL hash so the playground is shareable. `serialize()`

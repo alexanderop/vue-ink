@@ -35,6 +35,19 @@ test.describe("playground", () => {
     expect(consoleErrors, "no unexpected console errors").toEqual([]);
   });
 
+  test("example picker keeps the selected example shown after loading", async ({ page }) => {
+    await page.goto("/");
+
+    const picker = page.getByRole("combobox", { name: "Load example" });
+    await expect(picker).toBeVisible();
+
+    await picker.selectOption("snake");
+
+    // loadExample used to reset the dropdown back to the placeholder; the
+    // picked example must stay selected so the user can see what they loaded.
+    await expect(picker).toHaveValue("snake");
+  });
+
   test("Monaco shows vue-ink types on hover after switching examples", async ({ page }) => {
     // Volar warmup on a cold worker can exceed the default 30s test budget.
     test.setTimeout(180_000);
